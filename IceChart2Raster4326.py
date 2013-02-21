@@ -75,48 +75,62 @@ def Shape2Raster(shapefile):
     
     
     print "\n \n Done rasterizing", shapefilename, '\n'
+    
+    #Call Function to convert to Envi
     print "Tiff2Envi"
     Tiff2Envi(outraster)
 
 def Tiff2Envi(infile):
-    #check if shapefile exists, may not if failed in reprojection
+    #check if shapefile exists
     if infile==None:
         return
 
     #Get Path and Name of Inputfile
     (infilefilepath, infilename) = os.path.split(infile)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)           #get file name without extension
-    outfile = infilepath + '\\'+ infileshortname + '.img'    
-    print outfile
+    outfile = infilepath + '\\'+ infileshortname + '.img'           #create outputfilename
+    
+    #Open Dataset and Read as Array
     dataset = gdal.Open(infile, gdal.GA_ReadOnly)
     band = dataset.GetRasterBand(1)
     data = band.ReadAsArray(0, 0, dataset.RasterXSize, dataset.RasterYSize)
     
+    #Driver for output dataset
     driver = gdal.GetDriverByName('ENVI')
     driver.Register()
     
+    #Get Dimensions for Outputdataset
     cols = dataset.RasterXSize
     rows = dataset.RasterYSize
     bands = dataset.RasterCount
     datatype = band.DataType
-    print cols, rows, bands, datatype
+    
+    #Create outputfile
+    print 'Creating ', outfile, ' with ', cols, rows, bands, datatype
     outDataset = driver.Create(outfile, cols, rows, bands, datatype)
     
+    #Set Projectioninfo
     geoTransform = dataset.GetGeoTransform()
     outDataset.SetGeoTransform(geoTransform)
     
     proj = dataset.GetProjection()
     outDataset.SetProjection(proj)
     
+    #Write Data to output file
     outBand = outDataset.GetRasterBand(1)
     outBand.WriteArray(data, 0, 0)
+    
+    #Close files
+    outfile = None
+    outDataset = None
+    outBand = None
+    data = None
+    
+    
 # Core of Program follows here
 
 
 # Define filepaths
-# name of outputfile = inputname_EPSG3575.shp and inputname_EPSG3575.tif
-# Kit needs between 15/3 and 1/5
-
 infilepath = 'C:\\Users\\max\\Documents\Angelika'
 outfilepath = 'C:\\Users\\max\\Documents\\Angelika\\EPSG4326'
 
@@ -128,10 +142,6 @@ for icechart in filelist:
     
     Shape2Raster(icechart)
     
-    
-    #set shapefile to None so that it stays None in case reprojection fails.
-    reprshapefile = None    
-
  
 
 #END
