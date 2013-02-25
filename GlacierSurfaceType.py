@@ -45,7 +45,6 @@ def RasterizeMask(infile):
     print 'Done'
     
     #Close files
-    outfile = None
     maskshape = None
 
 #Core of Program follows
