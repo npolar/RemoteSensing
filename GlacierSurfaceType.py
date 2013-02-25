@@ -41,11 +41,10 @@ def RasterizeMask(infile):
     print '\n Rasterize ', infilename
     os.system('gdal_rasterize -burn 2 -l ' + infileshortname +' -tr 20.0 -20.0 ' +  infile + ' ' + outraster)
     
-    
-    print 'Done'
-    
-    #Close files
+    #Close files xcxcvxv
     maskshape = None
+
+
 
 #Core of Program follows
 
