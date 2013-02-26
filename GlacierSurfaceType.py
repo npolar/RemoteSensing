@@ -45,9 +45,26 @@ def RasterizeMask(infile):
     maskshape = None
 
 
+def CropGlacier(infile, glacier):
+    '''
+    Crops SAR image to extent of Mask and Remove all Values outside Mask
+    '''
+    # Define filenames
+    (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+    outraster = infilepath + '/' + infileshortname + '_crop.tif'
+
+    
+    
+    
 
 #Core of Program follows
 
-infile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
+inSARfile = 'C:\Users\max\Documents\Svalbard\KongsvegenOtsuTest.tif'
 
-RasterizeMask(infile)
+
+RasterizeMask(inshapefile)
+CropGlacier(inSARfile)
+
+
