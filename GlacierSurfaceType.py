@@ -102,7 +102,10 @@ def MaskGlacier(inshapefile, inSARfile):
                 glacierraster[i,j] = glacierraster[i,j]
             else:
                 glacierraster[i,j] = 999
-                
+    
+    # Set NoData Value
+    dsband.SetNoDataValue(999)
+           
     # Write outraster to file
     dsband.WriteArray(glacierraster)
     dsband.FlushCache()        
@@ -110,8 +113,57 @@ def MaskGlacier(inshapefile, inSARfile):
     #Close file
     mask = None
     ds = None
+
+def scaleimage(infile):
+    '''
+    scale values from 0 to 1
+    '''
+      
+    #Open Rasterfile and Mask
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(infile, gdal.GA_Update)
+    dsband = ds.GetRasterBand(1)
     
-def otsu3(data, min_threshold=None, max_threshold=None,bins=128):    
+    #Read input raster into array
+    glacierraster = ds.ReadAsArray()
+    
+    #get image max and min and calculate new range
+    rows = ds.RasterYSize
+    cols = ds.RasterXSize
+    stats = dsband.GetStatistics(0,1)
+    print stats
+    OldMin = stats[0]
+    OldMax = stats[1]
+    NewMin = 0.0
+    NewMax = 1.0
+    OldRange = (OldMax - OldMin)  
+    NewRange = (NewMax - NewMin)
+    
+    #Process the image
+    print 'Converting Range to 0-1 for ', infile
+    for i in range(rows):
+        for j in range(cols):
+            if glacierraster[i,j] == 999:
+                pass
+            else:
+                glacierraster[i,j] = (((glacierraster[i,j] - OldMin) * NewRange) / OldRange) + NewMin
+    
+    #New Image Stats WRONG MEAN STDV AT THE MOMENT
+    (newmin, newmax)= dsband.ComputeRasterMinMax(0)
+    (newmean, newstdv) = dsband.ComputeBandStats(1)
+    print newmin, newmax, newmean, newstdv
+    dsband.SetStatistics(0,1, newmean, newstdv)
+    # Write outraster to file
+    dsband.WriteArray(glacierraster)
+    dsband.FlushCache()        
+    
+    #Close file
+    dsband = None
+    glacierraster = None
+    ds = None            
+                
+def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):    
     """Compute a threshold using a 3-category Otsu-like method
     
     data           - an array of intensity values between zero and one
@@ -125,6 +177,19 @@ def otsu3(data, min_threshold=None, max_threshold=None,bins=128):
     Returns the lower and upper thresholds
     https://code.google.com/p/python-microscopy/source/browse/cpmath/otsu.py?spec=svn723c7e28f1385990003d5994605f5c096bdd2568&r=723c7e28f1385990003d5994605f5c096bdd2568
     """
+    
+    #Load infile in data array    
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(infile, gdal.GA_Update)
+    
+    #Read input raster into array
+    data = ds.ReadAsArray()
+    
+    stats = ds.GetRasterBand(1).GetStatistics(0,1)
+    print stats
+    
+    
     assert min_threshold==None or min_threshold >=0
     assert min_threshold==None or min_threshold <=1
     assert max_threshold==None or max_threshold >=0
@@ -155,6 +220,7 @@ def otsu3(data, min_threshold=None, max_threshold=None,bins=128):
     cs2 = (data**2).cumsum()
     i,j = numpy.mgrid[0:score_low.shape[0],0:score_high.shape[0]]*bin_len
     diff = (j-i).astype(float)
+    print diff
     w = diff
     mean = (cs[j] - cs[i]) / diff
     mean2 = (cs2[j] - cs2[i]) / diff
@@ -196,10 +262,17 @@ RasterizeMask(inshapefile)
 CropGlacier(inshapefile, inSARfile)
 MaskGlacier(inshapefile, inSARfile)
 
+
 # Define filenames
 (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
 (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
 inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_crop.tif'
-(thresh1, thresh2) = otsu3(inSARcrop)
+
+
+scaleimage(inSARcrop)
+(thresh1, thresh2) = otsu3(inSARcrop, 0.0, 1.0)
+print thresh1, thresh2
+
+
 
 
