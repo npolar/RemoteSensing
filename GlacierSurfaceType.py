@@ -268,13 +268,53 @@ def running_variance(x):
     return numpy.hstack(([0],var))
 
 
-        
-
+def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
+    '''
+    classify image with Otsu's thresholds
+    '''
+    
+    #Open Rasterfile and Mask
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(infile, gdal.GA_Update)
+    dsband = ds.GetRasterBand(1)
+    
+    #Read input raster into array
+    glacierraster = ds.ReadAsArray()
+    
+    #get image max and min and calculate new range
+    rows = ds.RasterYSize
+    cols = ds.RasterXSize
+    
+    #Process the image
+    print 'Classifying ', infile
+    for i in range(rows):
+        for j in range(cols):
+            if 0.0 < glacierraster[i,j] < thresh1:
+                glacierraster[i,j] = 1.0
+            elif thresh1 < glacierraster[i,j] < thresh2:
+                glacierraster[i,j] = 2.0
+            elif thresh2 < glacierraster[i,j] < 1.0:
+                glacierraster[i,j] = 3.0
+            else:
+                glacierraster[i,j] = 999.0
+    
+    
+    # Write outraster to file
+    dsband.WriteArray(glacierraster)
+    dsband.FlushCache()
+    dsband.GetStatistics(0,1)
+    
+    
+    #Close file
+    dsband = None
+    glacierraster = None
+    ds = None  
         
 #Core of Program follows
 
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
-inSARfile = 'C:\Users\max\Documents\Svalbard\KongsvegenOtsuTest.tif'
+inSARfile = 'C:\Users\max\Documents\Svalbard\KongsvegenOtsuTest1992.tif'
 
 
 RasterizeMask(inshapefile)
@@ -292,7 +332,10 @@ scaleimage(inSARcrop)
 
 (thresh1, thresh2) = otsu3(inSARcrop)
 
-print thresh1, thresh2
+print 'Calculated thresholds are ', thresh1,' ',  thresh2
+print
+
+classify_image(inSARcrop, thresh1, thresh2)
 
 print
 print "Done"
