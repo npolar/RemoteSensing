@@ -184,6 +184,8 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     We find the maximum weighted variance, breaking the histogram into
     three pieces.
     Returns the lower and upper thresholds
+    
+    CODE ORIGINATES FROM:
     https://code.google.com/p/python-microscopy/source/browse/cpmath/otsu.py?spec=svn723c7e28f1385990003d5994605f5c096bdd2568&r=723c7e28f1385990003d5994605f5c096bdd2568
     """
     
@@ -247,6 +249,10 @@ def running_variance(x):
     Thank you http://www.johndcook.com/standard_deviation.html
     S[i] = S[i-1]+(x[i]-mean[i-1])*(x[i]-mean[i])
     var(i) = S[i] / (i-1)
+    
+    CODE ORIGINATES FROM:
+    https://code.google.com/p/python-microscopy/source/browse/cpmath/otsu.py?spec=svn723c7e28f1385990003d5994605f5c096bdd2568&r=723c7e28f1385990003d5994605f5c096bdd2568
+   
     '''
     n = len(x)
     # The mean of x[0:i]
