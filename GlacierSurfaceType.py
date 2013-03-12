@@ -101,10 +101,10 @@ def MaskGlacier(inshapefile, inSARfile):
             if maskraster[i,j] == 2.0:
                 glacierraster[i,j] = glacierraster[i,j]
             else:
-                glacierraster[i,j] = 999
+                glacierraster[i,j] = -999.0
     
     # Set NoData Value
-    dsband.SetNoDataValue(999)
+    dsband.SetNoDataValue(-999.0)
            
     # Write outraster to file
     dsband.WriteArray(glacierraster)
@@ -144,7 +144,7 @@ def scaleimage(infile):
     print 'Converting Range to 0-1 for ', infile
     for i in range(rows):
         for j in range(cols):
-            if glacierraster[i,j] == 999:
+            if glacierraster[i,j] == -999.0:
                 pass
             else:
                 glacierraster[i,j] = (((glacierraster[i,j] - OldMin) * NewRange) / OldRange) + NewMin
@@ -198,7 +198,7 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     data = ds.ReadAsArray()
     
     #replace no data value with numpy.nan
-    data[data==999.0]=numpy.nan
+    data[data==-999.0]=numpy.nan
           
     
     assert min_threshold==None or min_threshold >=0
@@ -282,6 +282,7 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     #Read input raster into array
     glacierraster = ds.ReadAsArray()
     
+    
     #get image max and min and calculate new range
     rows = ds.RasterYSize
     cols = ds.RasterXSize
@@ -297,9 +298,9 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
             elif thresh2 < glacierraster[i,j] < 1.0:
                 glacierraster[i,j] = 3.0
             else:
-                glacierraster[i,j] = 999.0
+                glacierraster[i,j] = -999.0
     
-    
+   
     # Write outraster to file
     dsband.WriteArray(glacierraster)
     dsband.FlushCache()
@@ -310,7 +311,20 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     dsband = None
     glacierraster = None
     ds = None  
-        
+    
+    #Load infile again and calculate new stats (not sure how to get from raster)    
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(infile, gdal.GA_Update)
+    dsband = ds.GetRasterBand(1)
+    (newmin, newmax)= dsband.ComputeRasterMinMax(0)
+    (newmean, newstdv) = dsband.ComputeBandStats(1)
+    dsband.SetStatistics(newmin, newmax,newmean, newstdv)
+    dsband.FlushCache()       
+    dsband = None  
+    ds = None
+
+    
 #Core of Program follows
 
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
