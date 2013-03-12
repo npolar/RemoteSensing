@@ -132,7 +132,7 @@ def scaleimage(infile):
     rows = ds.RasterYSize
     cols = ds.RasterXSize
     stats = dsband.GetStatistics(0,1)
-    print stats
+    
     OldMin = stats[0]
     OldMax = stats[1]
     NewMin = 0.0
@@ -149,11 +149,6 @@ def scaleimage(infile):
             else:
                 glacierraster[i,j] = (((glacierraster[i,j] - OldMin) * NewRange) / OldRange) + NewMin
     
-    #New Image Stats WRONG MEAN STDV AT THE MOMENT
-    (newmin, newmax)= dsband.ComputeRasterMinMax(0)
-    (newmean, newstdv) = dsband.ComputeBandStats(1)
-    print newmin, newmax, newmean, newstdv
-    dsband.SetStatistics(0,1, newmean, newstdv)
     # Write outraster to file
     dsband.WriteArray(glacierraster)
     dsband.FlushCache()        
@@ -161,8 +156,22 @@ def scaleimage(infile):
     #Close file
     dsband = None
     glacierraster = None
-    ds = None            
-                
+    ds = None  
+
+    #Load infile again and calculate new stats (not sure how to get from raster)    
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(infile, gdal.GA_Update)
+    dsband = ds.GetRasterBand(1)
+    stats = dsband.GetStatistics(0,1)
+    (newmin, newmax)= dsband.ComputeRasterMinMax(0)
+    (newmean, newstdv) = dsband.ComputeBandStats(1)
+    dsband.SetStatistics(newmin, newmax,newmean, newstdv)
+    dsband.FlushCache()       
+    dsband = None  
+    ds = None
+
+          
 def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):    
     """Compute a threshold using a 3-category Otsu-like method
     
@@ -186,9 +195,9 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     #Read input raster into array
     data = ds.ReadAsArray()
     
-    stats = ds.GetRasterBand(1).GetStatistics(0,1)
-    print stats
-    
+    #replace no data value with numpy.nan
+    data[data==999.0]=numpy.nan
+          
     
     assert min_threshold==None or min_threshold >=0
     assert min_threshold==None or min_threshold <=1
@@ -200,7 +209,7 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     # Compute the running variance and reverse running variance.
     # 
     data = data[~numpy.isnan(data)]
-    data.sort()
+    data.sort() 
     if len(data) == 0:
         return 0
     var = running_variance(data)
@@ -220,10 +229,11 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     cs2 = (data**2).cumsum()
     i,j = numpy.mgrid[0:score_low.shape[0],0:score_high.shape[0]]*bin_len
     diff = (j-i).astype(float)
-    print diff
+    print cs[j], cs[i], diff
     w = diff
     mean = (cs[j] - cs[i]) / diff
     mean2 = (cs2[j] - cs2[i]) / diff
+    print diff, mean
     score_middle = w * (mean2 - mean**2)
     score_middle[i >= j] = numpy.Inf
     score = score_low[i*bins/len(data)] + score_middle + score_high[j*bins/len(data)]
@@ -251,7 +261,10 @@ def running_variance(x):
     # Prepend Inf so we have a variance for x[0]
     return numpy.hstack(([0],var))
 
-    
+
+        
+
+        
 #Core of Program follows
 
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
@@ -266,13 +279,16 @@ MaskGlacier(inshapefile, inSARfile)
 # Define filenames
 (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
 (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_crop.tif'
+inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_crop.tif'
 
 
 scaleimage(inSARcrop)
-(thresh1, thresh2) = otsu3(inSARcrop, 0.0, 1.0)
+
+(thresh1, thresh2) = otsu3(inSARcrop)
+
 print thresh1, thresh2
 
-
+print
+print "Done"
 
 
