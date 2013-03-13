@@ -10,7 +10,7 @@ Classification into Glacier Surface Types
 
 #import modules
 
-import ogr, os, gdal, numpy
+import ogr, os, gdal, numpy, glob
 
 
 # Define Functions
@@ -199,7 +199,8 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     
     #replace no data value with numpy.nan
     data[data==-999.0]=numpy.nan
-          
+    
+    print 'Apply Otsu\'s filter on ', infile     
     
     assert min_threshold==None or min_threshold >=0
     assert min_threshold==None or min_threshold <=1
@@ -231,11 +232,9 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     cs2 = (data**2).cumsum()
     i,j = numpy.mgrid[0:score_low.shape[0],0:score_high.shape[0]]*bin_len
     diff = (j-i).astype(float)
-    print cs[j], cs[i], diff
     w = diff
     mean = (cs[j] - cs[i]) / diff
     mean2 = (cs2[j] - cs2[i]) / diff
-    print diff, mean
     score_middle = w * (mean2 - mean**2)
     score_middle[i >= j] = numpy.Inf
     score = score_low[i*bins/len(data)] + score_middle + score_high[j*bins/len(data)]
@@ -291,11 +290,11 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     print 'Classifying ', infile
     for i in range(rows):
         for j in range(cols):
-            if 0.0 < glacierraster[i,j] < thresh1:
+            if 0.0 <= glacierraster[i,j] < thresh1:
                 glacierraster[i,j] = 1.0
-            elif thresh1 < glacierraster[i,j] < thresh2:
+            elif thresh1 <= glacierraster[i,j] < thresh2:
                 glacierraster[i,j] = 2.0
-            elif thresh2 < glacierraster[i,j] < 1.0:
+            elif thresh2 <= glacierraster[i,j] <= 1.0:
                 glacierraster[i,j] = 3.0
             else:
                 glacierraster[i,j] = -999.0
@@ -324,32 +323,58 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     dsband = None  
     ds = None
 
+def ApplySieve(infile):
+    '''
+    applies gdal_sieve
+    '''    
+    
+    print '\n Apply gdal_sieve'
+    #os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -burn 2 -l ' + shapefileshortname +' -tr 1000 -1000 ' +  shapefile + ' ' + outraster)
+    os.system('gdal_sieve.py -st 60 -4 -of GTiff ' + infile)
+            
+    
+    
+    
+    
     
 #Core of Program follows
 
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
-inSARfile = 'C:\Users\max\Documents\Svalbard\KongsvegenOtsuTest1992.tif'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 
 
-RasterizeMask(inshapefile)
-CropGlacier(inshapefile, inSARfile)
-MaskGlacier(inshapefile, inSARfile)
+# Iterate through all shapefiles
+filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
+for inSARfile in filelist:
+    
+    # Define filenames
+    (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
+    (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
+    inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_crop.tif'
+    
+    #Make Raster from shapefile
+    RasterizeMask(inshapefile)
+    
+    #Crop SAR file to extents of shapefile
+    CropGlacier(inshapefile, inSARfile)
 
-# Define filenames
-(inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
-(inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_crop.tif'
-
-
-scaleimage(inSARcrop)
-
-(thresh1, thresh2) = otsu3(inSARcrop)
-
-print 'Calculated thresholds are ', thresh1,' ',  thresh2
-print
-
-classify_image(inSARcrop, thresh1, thresh2)
+    #Masks Area outside glacier with no data value -999.0    
+    MaskGlacier(inshapefile, inSARfile)
+    
+    #Convert image values to range 0 to 1 for Otsu input
+    scaleimage(inSARcrop)
+    
+    #Call Otsu's method
+    (thresh1, thresh2) = otsu3(inSARcrop)
+    print 'Calculated thresholds are ', thresh1,' ',  thresh2
+    print
+    
+    #Apply the thresholds gotten by Otsu
+    classify_image(inSARcrop, thresh1, thresh2)
+    
+    #Apply Sieve filter to remove noise
+    ApplySieve(inSARcrop)
 
 print
 print "Done"
