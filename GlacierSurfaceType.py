@@ -39,7 +39,8 @@ def CropGlacier(inshapefile, inSARfile):
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    outraster = inSARfilepath + '/' + inSARfileshortname + '_crop.tif'
+    outraster = inSARfilepath + '/' + inSARfileshortname + '_mask.tif'
+    outraster2 = inSARfilepath + '/' + inSARfileshortname + '_SAR.tif'
     
     (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
     (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
@@ -60,8 +61,12 @@ def CropGlacier(inshapefile, inSARfile):
     print 'LR: ', maskextent[1], maskextent[2]
 
     # crop image with gdal_translate -- call gdal_rasterize commandline
-    print '\n Subsetting ', inSARfilename, ' to glacier extent'
+    print '\n Subsetting maskfile ', inSARfilename, ' to glacier extent'
     os.system('gdal_translate -projwin ' + str(maskextent[0]) + ' ' + str(maskextent[3]) + ' ' + str(maskextent[1]) + ' ' + str(maskextent[2]) + ' ' + inSARfile + ' ' + outraster)
+    
+    # crop second image to keep with gdal_translate -- call gdal_rasterize commandline
+    print '\n Subsetting SARfile ', inSARfilename, ' to glacier extent'
+    os.system('gdal_translate -projwin ' + str(maskextent[0]) + ' ' + str(maskextent[3]) + ' ' + str(maskextent[1]) + ' ' + str(maskextent[2]) + ' ' + inSARfile + ' ' + outraster2)
     
     #Close files 
     maskshape = None
@@ -73,7 +78,7 @@ def MaskGlacier(inshapefile, inSARfile):
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_crop.tif'
+    inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_mask.tif'
     
     (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
     (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
@@ -333,25 +338,39 @@ def ApplySieve(infile):
     os.system('gdal_sieve.py -st 60 -4 -of GTiff ' + infile)
             
     
+
+def PolygonizeGST(infile):
+    '''
+    creates shapefile out of GST raster
+    '''
+    (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+    outfile = infilepath + '/' + infileshortname + '.shp'    
     
-    
+    print '\n Convert ', infile, ' to shapefile.'
+    os.system('gdal_polygonize.py ' + infile + ' -f "ESRI Shapefile" ' + outfile)    
     
     
 #Core of Program follows
 
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kongsvegen2000.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
 
 
 # Iterate through all shapefiles
 filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+#filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+#filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+
 
 for inSARfile in filelist:
     
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_crop.tif'
+    inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_mask.tif'
     
     #Make Raster from shapefile
     RasterizeMask(inshapefile)
@@ -375,7 +394,10 @@ for inSARfile in filelist:
     
     #Apply Sieve filter to remove noise
     ApplySieve(inSARcrop)
-
+    
+    #Convert GST raster to GST shapefile
+    PolygonizeGST(inSARcrop)
+    
 print
 print "Done"
 
