@@ -42,7 +42,7 @@ import ogr, os, gdal, numpy, glob
 
 def RasterizeMask(infile):
     '''
-    Takes infile and creates raster with extension of shapefil
+    Takes infile and creates raster from shapefile
     '''
     
     # Define filenames
@@ -59,12 +59,13 @@ def RasterizeMask(infile):
 
 def CropGlacier(inshapefile, inSARfile):
     '''
-    Crops SAR image to extent of Mask and Remove all Values outside Mask
+    Crops SAR image to extent of Mask, i.e. glacier extent
+    
     '''
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    outraster = inSARfilepath + '/' + inSARfileshortname + '_mask.tif'
+    outraster = inSARfilepath + '/' + inSARfileshortname + '_GST.tif'
     outraster2 = inSARfilepath + '/' + inSARfileshortname + '_SAR.tif'
     
     (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
@@ -99,11 +100,13 @@ def CropGlacier(inshapefile, inSARfile):
 def MaskGlacier(inshapefile, inSARfile):
     '''
     Masks Cropped SARfile
+    
+    Sets all values outside mask to -999.0 no data value. The same file will receive classification
     '''
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_mask.tif'
+    inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_GST.tif'
     
     (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
     (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
@@ -146,7 +149,7 @@ def MaskGlacier(inshapefile, inSARfile):
 
 def scaleimage(infile):
     '''
-    scale values from 0 to 1
+    scale values from 0 to 1, needed by Otsu input requirement
     '''
       
     #Open Rasterfile and Mask
@@ -215,7 +218,7 @@ def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):
     three pieces.
     Returns the lower and upper thresholds
     
-    CODE ORIGINATES FROM:
+    CODE ORIGINATES FROM, adjusted to read gdal GeoTIFF:
     https://code.google.com/p/python-microscopy/source/browse/cpmath/otsu.py?spec=svn723c7e28f1385990003d5994605f5c096bdd2568&r=723c7e28f1385990003d5994605f5c096bdd2568
     """
     
@@ -356,6 +359,9 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
 def ApplySieve(infile):
     '''
     applies gdal_sieve
+        * 4-connectedness seemed best, 8 removes too muc
+        * 60 filter seemed ok
+    
     '''    
     
     print '\n Apply gdal_sieve'
@@ -378,6 +384,7 @@ def PolygonizeGST(infile):
     
 #Core of Program follows
 
+#Define location and name of glaciermask
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
@@ -385,18 +392,21 @@ def PolygonizeGST(infile):
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Chydeniusbreen2000_Buffer.shp'
 
 
-# Iterate through all shapefiles
+# Define location and name of GeoTIFF containing SAR image
+# Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 
 #filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 filelist = glob.glob('S:\CryoClimValidation\NortheastSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
+
+#Iterate through filelist with SAR files
 for inSARfile in filelist:
     
     # Define filenames
     (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
     (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
-    inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_mask.tif'
+    inSARcrop = inSARfilepath + '\\' + inSARfileshortname + '_GST.tif'
     
     #Make Raster from shapefile
     RasterizeMask(inshapefile)
