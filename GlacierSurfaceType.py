@@ -6,6 +6,31 @@ Created on Mon Feb 25 09:04:29 2013
 
 Classification into Glacier Surface Types
 
+    Steps:        
+    #Make Raster from shapefile
+    RasterizeMask(inshapefile)
+    
+    #Crop SAR file to extents of shapefile
+    CropGlacier(inshapefile, inSARfile)
+
+    #Masks Area outside glacier with no data value -999.0    
+    MaskGlacier(inshapefile, inSARfile)
+    
+    #Convert image values to range 0 to 1 for Otsu input
+    scaleimage(inSARcrop)
+    
+    #Call Otsu's method
+    (thresh1, thresh2) = otsu3(inSARcrop)
+    
+    #Apply the thresholds gotten by Otsu
+    classify_image(inSARcrop, thresh1, thresh2)
+    
+    #Apply Sieve filter to remove noise
+    ApplySieve(inSARcrop)
+    
+    #Convert GST raster to GST shapefile
+    PolygonizeGST(inSARcrop)
+
 """
 
 #import modules
@@ -353,17 +378,18 @@ def PolygonizeGST(infile):
     
 #Core of Program follows
 
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Chydeniusbreen2000_Buffer.shp'
 
 
 # Iterate through all shapefiles
-filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+#filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
-
+filelist = glob.glob('S:\CryoClimValidation\NortheastSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
 for inSARfile in filelist:
     
