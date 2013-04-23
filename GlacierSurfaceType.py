@@ -35,7 +35,7 @@ Classification into Glacier Surface Types
 
 #import modules
 
-import ogr, os, gdal, numpy, glob
+import ogr, os, gdal, numpy, glob, shutil
 
 
 # Define Functions
@@ -142,6 +142,10 @@ def MaskGlacier(inshapefile, inSARfile):
     # Write outraster to file
     dsband.WriteArray(glacierraster)
     dsband.FlushCache()        
+    
+    #make a copy to keep the masked SAR
+    maskedSAR = inSARfilepath + '/' + inSARfileshortname + '_SARmask.tif'
+    shutil.copyfile(inSARcrop, maskedSAR)    
     
     #Close file
     mask = None
@@ -356,6 +360,7 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     dsband = None  
     ds = None
 
+
 def ApplySieve(infile):
     '''
     applies gdal_sieve
@@ -385,19 +390,23 @@ def PolygonizeGST(infile):
 #Core of Program follows
 
 #Define location and name of glaciermask
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\AustreBroggerbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Chydeniusbreen2000_Buffer.shp'
-
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
 
 # Define location and name of GeoTIFF containing SAR image
 # Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 
+
+filelist = glob.glob('F:\SvalbardSARbyYear\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
-filelist = glob.glob('S:\CryoClimValidation\NortheastSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+#filelist = glob.glob('S:\CryoClimValidation\Nordaustlandet\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
 
 #Iterate through filelist with SAR files
@@ -424,6 +433,13 @@ for inSARfile in filelist:
     (thresh1, thresh2) = otsu3(inSARcrop)
     print 'Calculated thresholds are ', thresh1,' ',  thresh2
     print
+    
+    #write thresholds to file
+    filename = inSARfilepath + '\\' + 'thresholds.txt'
+    f = open(filename, 'a')
+    f.write(inSARcrop + ' ' +  str(thresh1) + ' ' +  str(thresh2)+ "\n")
+    f.close()
+    
     
     #Apply the thresholds gotten by Otsu
     classify_image(inSARcrop, thresh1, thresh2)
