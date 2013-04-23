@@ -1,0 +1,46 @@
+<graph id="Graph">
+  <version>1.0</version>
+  <node id="1-Read">
+    <operator>Read</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>$file</file>
+    </parameters>
+  </node>
+  <node id="2-Write">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="3-BandMaths"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <formatName>BEAM-DIMAP</formatName>
+      <file>$target</file>
+    </parameters>
+  </node>
+  <node id="3-BandMaths">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="1-Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands/>
+      <variables/>
+      <bandName>Sigma0_VV_db</bandName>
+      <bandUnit/>
+      <bandNodataValue/>
+      <bandExpression>$Band0 &gt; -2E-30 AND $Band0 &lt; -1E-30 ? -999 : $Band0</bandExpression>
+    </parameters>
+  </node>
+  <applicationData id="Presentation">
+    <Description/>
+    <node id="1-Read">
+      <displayPosition y="134.0" x="37.0"/>
+    </node>
+    <node id="2-Write">
+      <displayPosition y="135.0" x="455.0"/>
+    </node>
+    <node id="3-BandMaths">
+      <displayPosition y="235.0" x="260.0"/>
+    </node>
+  </applicationData>
+</graph>
