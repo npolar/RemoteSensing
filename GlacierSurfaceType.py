@@ -36,6 +36,7 @@ Classification into Glacier Surface Types
 #import modules
 
 import ogr, os, gdal, numpy, glob, shutil
+import matplotlib.pyplot as plt
 
 
 # Define Functions
@@ -170,8 +171,10 @@ def scaleimage(infile):
     cols = ds.RasterXSize
     stats = dsband.GetStatistics(0,1)
     
+    
     OldMin = stats[0]
     OldMax = stats[1]
+  
     NewMin = 0.0
     NewMax = 1.0
     OldRange = (OldMax - OldMin)  
@@ -207,7 +210,7 @@ def scaleimage(infile):
     dsband.FlushCache()       
     dsband = None  
     ds = None
-
+    return OldMin, OldMax
           
 def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):    
     """Compute a threshold using a 3-category Otsu-like method
@@ -386,11 +389,37 @@ def PolygonizeGST(infile):
     print '\n Convert ', infile, ' to shapefile.'
     os.system('gdal_polygonize.py ' + infile + ' -f "ESRI Shapefile" ' + outfile)    
     
+def PlotHistogram(infile, thresh1, thresh2):
+    ''' plots histogram '''
     
+    # Define filenames
+    (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
+    (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
+    inSARcrop = inSARfilepath + '/' + inSARfileshortname + '_SARmask.tif'
+    histfilename = inSARfilepath + '/' + inSARfileshortname + '_hist.jpg'
+    
+    #Open Rasterfile and Mask
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(inSARcrop, gdal.GA_Update)
+    raster = ds.ReadAsArray()
+    
+    plt.figure()
+    plt.hist(raster.flatten(), 128, range = (-25.0, 10.0))
+    plt.axvline(x=thresh1, ymin=0, ymax=6000, linewidth=1, color='r')
+    plt.axvline(x=thresh2, ymin=0, ymax=6000, linewidth=1, color='r')
+    plt.title(inSARfileshortname)
+    
+    plt.savefig(histfilename)
+
+        
 #Core of Program follows
 
 #Define location and name of glaciermask
 inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Monacobreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\AustreBroggerbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
@@ -427,19 +456,27 @@ for inSARfile in filelist:
     MaskGlacier(inshapefile, inSARfile)
     
     #Convert image values to range 0 to 1 for Otsu input
-    scaleimage(inSARcrop)
+    (oldmin, oldmax) = scaleimage(inSARcrop)
+    print 'Minimum and Maximum are ', oldmin,' ',  oldmax
     
     #Call Otsu's method
     (thresh1, thresh2) = otsu3(inSARcrop)
     print 'Calculated thresholds are ', thresh1,' ',  thresh2
     print
     
+    #Calculate back threshold in dB
+    thresh1dB = (oldmax-oldmin) * thresh1 + oldmin
+    thresh2dB = (oldmax-oldmin) * thresh2 + oldmin
+    print 'Calculated thresholds in dB are ', thresh1dB,' ',  thresh2dB
+     
+    
     #write thresholds to file
     filename = inSARfilepath + '\\' + 'thresholds.txt'
     f = open(filename, 'a')
-    f.write(inSARcrop + ' ' +  str(thresh1) + ' ' +  str(thresh2)+ "\n")
+    f.write(inSARcrop + ' ' +  str(thresh1dB) + ' ' +  str(thresh2dB)+ "\n")
     f.close()
-    
+    #plot histogram
+    PlotHistogram(inSARfile, thresh1dB, thresh2dB)
     
     #Apply the thresholds gotten by Otsu
     classify_image(inSARcrop, thresh1, thresh2)
