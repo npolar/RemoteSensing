@@ -416,7 +416,7 @@ def PlotHistogram(infile, thresh1, thresh2):
 #Core of Program follows
 
 #Define location and name of glaciermask
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Monacobreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
@@ -424,18 +424,25 @@ inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Uversbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Osbornebreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Wahlenbergbreen2000_Buffer.shp'
+
+
+
 
 # Define location and name of GeoTIFF containing SAR image
 # Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 
 
-filelist = glob.glob('F:\SvalbardSARbyYear\*.tif')
+#filelist = glob.glob('F:\SvalbardSARbyYear\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
-#filelist = glob.glob('S:\CryoClimValidation\Nordaustlandet\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+filelist = glob.glob('S:\CryoClimValidation\Nordaustlandet\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
 
 #Iterate through filelist with SAR files

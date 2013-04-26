@@ -9,8 +9,19 @@
 : )
 
  
-for /r Z:\Radarsat\2012\Original %%X in (product.xml) do  ( 
-echo processing %%X
-for /f "delims=\ tokens=1,2,3, 4, 5, 6" %%i in ("%%X") do (
-gpt S:\CryoClimValidation\ImportToDIM.xml -Pfile="%%X"  -Tfile="Z:\Radarsat\NestImported\%%m.dim"
-))
+:for /r Z:\Radarsat\2012\Original %%X in (product.xml) do  ( 
+:echo processing %%X
+:for /f "delims=\ tokens=1,2,3, 4, 5, 6" %%i in ("%%X") do (
+:gpt S:\CryoClimValidation\ImportToDIM.xml -Pfile="%%X"  -Tfile="Z:\Radarsat\NestImported\%%m.dim"
+:))
+
+for /r Z:\Svalbard\ERS1_2_ASAR\Kongsfjorden %%X in (*.N1) do  ( 
+echo processing %%~nX
+gpt C:\Users\max\Documents\PythonProjects\Nest\ImportToDim.xml -Pfile="%%X" -Tfile="S:\CryoClimValidation\Kongsfjorden\NestImported\%%~nX.dim"
+ )
+
+:for /r Z:\Svalbard\ERS1_2_ASAR\Kongsfjorden %%X in (VDF_*) do  ( 
+:echo processing %%X
+:for /f "delims=\ tokens=1,2,3, 4, 5, 6" %%i in ("%%X") do (
+:gpt C:\Users\max\Documents\PythonProjects\Nest\ImportToDim.xml -Pfile="%%X"  -Tfile="S:\CryoClimValidation\Kongsfjorden\NestImported\%%m.dim"
+:))
