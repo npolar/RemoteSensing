@@ -412,11 +412,83 @@ def PlotHistogram(infile, thresh1, thresh2):
     
     plt.savefig(histfilename)
 
+def RenameFiles(inshapefile):
+    '''
+    rename all files produced
+    works for mosaicXXXX.tif in F:\SvalbardSARbyYear\*.tif
+    very simple, no universal method -- dependent on file location as given
+    '''
+    # Define filenames
+    (inSARfilepath, inSARfilename) = os.path.split(inSARfile)             #get path and filename seperately
+    (inSARfileshortname, inSARextension) = os.path.splitext(inSARfilename)
+        
+    (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
+    (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
+    
+    glaciername = inshapefileshortname[0:-11]
+       
+    print 'renaming files'
+    filelist = glob.glob('F:\SvalbardSARbyYear\*GST.tif')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)        
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_GST.tif'
+        os.rename(oldname, newname )
+        
+    filelist = glob.glob('F:\SvalbardSARbyYear\*SAR.tif')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_SAR.tif'
+        os.rename(oldname, newname )
+
+    filelist = glob.glob('F:\SvalbardSARbyYear\*SARmask.tif')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_SARmask.tif'
+        os.rename(oldname, newname )
+        
+    filelist = glob.glob('F:\SvalbardSARbyYear\*hist.jpg')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_hist.jpg'
+        os.rename(oldname, newname )
+    
+    filelist = glob.glob('F:\SvalbardSARbyYear\*GST.dbf')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_GST.dbf'
+        os.rename(oldname, newname )   
+        
+    filelist = glob.glob('F:\SvalbardSARbyYear\*GST.prj')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_GST.prj'
+        os.rename(oldname, newname ) 
+    
+    filelist = glob.glob('F:\SvalbardSARbyYear\*GST.shx')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_GST.shx'
+        os.rename(oldname, newname ) 
+     
+    filelist = glob.glob('F:\SvalbardSARbyYear\*GST.shp')
+    for processfile in filelist:
+        year = processfile[27:31]
+        oldname = str(processfile)
+        newname = inSARfilepath + '//'+ glaciername + str(year) + '_GST.shp'
+        os.rename(oldname, newname )
+        
         
 #Core of Program follows
 
 #Define location and name of glaciermask
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Monacobreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
@@ -426,7 +498,7 @@ def PlotHistogram(infile, thresh1, thresh2):
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Uversbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Osbornebreen2000_Buffer.shp'
@@ -438,11 +510,11 @@ inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer
 # Define location and name of GeoTIFF containing SAR image
 # Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 
 
-#filelist = glob.glob('F:\SvalbardSARbyYear\*.tif')
+filelist = glob.glob('F:\SvalbardSARbyYear\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\Kongsfjorden\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\SouthSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 #filelist = glob.glob('S:\CryoClimValidation\CentralSpitsbergen\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
-filelist = glob.glob('S:\CryoClimValidation\Nordaustlandet\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
+#filelist = glob.glob('S:\CryoClimValidation\Nordaustlandet\AppOrb_Calib_Spk_SarsimTC_LinDB\GeoTIFF\*.tif')
 
 
 #Iterate through filelist with SAR files
@@ -494,6 +566,12 @@ for inSARfile in filelist:
     #Convert GST raster to GST shapefile
     PolygonizeGST(inSARcrop)
     
+#end for
+
+#rename files
+RenameFiles(inshapefile)
+
+
 print
 print "Done"
 
