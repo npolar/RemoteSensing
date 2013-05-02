@@ -4,7 +4,7 @@ Created on Mon Feb 25 09:04:29 2013
 
 @author: max
 
-Classification into Glacier Surface Types
+Classification into Glacier Surface Types TWO CLASS VERSION
 
     Steps:        
     #Make Raster from shapefile
@@ -20,10 +20,10 @@ Classification into Glacier Surface Types
     scaleimage(inSARcrop)
     
     #Call Otsu's method
-    (thresh1, thresh2) = otsu3(inSARcrop)
+    (thresh1) = otsu(inSARcrop)
     
     #Apply the thresholds gotten by Otsu
-    classify_image(inSARcrop, thresh1, thresh2)
+    classify_image(inSARcrop, thresh1)
     
     #Apply Sieve filter to remove noise
     ApplySieve(inSARcrop)
@@ -212,75 +212,85 @@ def scaleimage(infile):
     ds = None
     return OldMin, OldMax
           
-def otsu3(infile, min_threshold=None, max_threshold=None,bins=128):    
-    """Compute a threshold using a 3-category Otsu-like method
+    
+def otsu(infile, min_threshold= None, max_threshold= None ,bins=256):
+    """Compute a threshold using Otsu's method
     
     data           - an array of intensity values between zero and one
     min_threshold  - only consider thresholds above this minimum value
     max_threshold  - only consider thresholds below this maximum value
     bins           - we bin the data into this many equally-spaced bins, then pick
                      the bin index that optimizes the metric
+                     
     
-    We find the maximum weighted variance, breaking the histogram into
-    three pieces.
-    Returns the lower and upper thresholds
+    
     
     CODE ORIGINATES FROM, adjusted to read gdal GeoTIFF:
     https://code.google.com/p/python-microscopy/source/browse/cpmath/otsu.py?spec=svn723c7e28f1385990003d5994605f5c096bdd2568&r=723c7e28f1385990003d5994605f5c096bdd2568
+
     """
-    
+
     #Load infile in data array    
     driver = gdal.GetDriverByName('GTiff')
     driver.Register()
     ds = gdal.Open(infile, gdal.GA_Update)
     
     #Read input raster into array
-    data = ds.ReadAsArray()
+    data = ds.ReadAsArray() 
     
     #replace no data value with numpy.nan
-    data[data==-999.0]=numpy.nan
-    
-    print 'Apply Otsu\'s filter on ', infile     
+    data[data==-999.0]=numpy.nan 
     
     assert min_threshold==None or min_threshold >=0
     assert min_threshold==None or min_threshold <=1
     assert max_threshold==None or max_threshold >=0
     assert max_threshold==None or max_threshold <=1
     assert min_threshold==None or max_threshold==None or min_threshold < max_threshold
+    def constrain(threshold):
+        if not min_threshold is None and threshold < min_threshold:
+            threshold = min_threshold
+        if not max_threshold is None and threshold > max_threshold:
+            threshold = max_threshold
+        return threshold
     
-    #
-    # Compute the running variance and reverse running variance.
-    # 
-    data = data[~numpy.isnan(data)]
-    data.sort() 
+    data = data[~numpy.isnan(data)]    
+    data = numpy.array(data).flatten()
     if len(data) == 0:
-        return 0
-    var = running_variance(data)
-    rvar = numpy.flipud(running_variance(numpy.flipud(data)))
+        return (min_threshold if not min_threshold is None
+                else max_threshold if not max_threshold is None
+                else 0)
+    elif len(data) == 1:
+        return constrain(data[0])
     if bins > len(data):
         bins = len(data)
-    bin_len = int(len(data)/bins) 
-    thresholds = data[0:len(data):bin_len]
-    score_low = (var[0:len(data):bin_len] * 
-                 numpy.arange(0,len(data),bin_len))
-    score_high = (rvar[0:len(data):bin_len] *
-                  (len(data) - numpy.arange(0,len(data),bin_len)))
+    data.sort()
+    var = running_variance(data)
+    rvar = numpy.flipud(running_variance(numpy.flipud(data))) 
+    thresholds = data[1:len(data):len(data)/bins]
+    score_low = (var[0:len(data)-1:len(data)/bins] * 
+                 numpy.arange(0,len(data)-1,len(data)/bins))
+    score_high = (rvar[1:len(data):len(data)/bins] *
+                  (len(data) - numpy.arange(1,len(data),len(data)/bins)))
+    scores = score_low + score_high
+    if len(scores) == 0:
+        return constrain(thresholds[0])
+    index = numpy.argwhere(scores == scores.min()).flatten()
+    if len(index)==0:
+        return constrain(thresholds[0])
     #
-    # Compute the middles
-    #
-    cs = data.cumsum()
-    cs2 = (data**2).cumsum()
-    i,j = numpy.mgrid[0:score_low.shape[0],0:score_high.shape[0]]*bin_len
-    diff = (j-i).astype(float)
-    w = diff
-    mean = (cs[j] - cs[i]) / diff
-    mean2 = (cs2[j] - cs2[i]) / diff
-    score_middle = w * (mean2 - mean**2)
-    score_middle[i >= j] = numpy.Inf
-    score = score_low[i*bins/len(data)] + score_middle + score_high[j*bins/len(data)]
-    best_score = numpy.min(score)
-    best_i_j = numpy.argwhere(score==best_score)
-    return (thresholds[best_i_j[0,0]],thresholds[best_i_j[0,1]])    
+    # Take the average of the thresholds to either side of
+    # the chosen value to get an intermediate in cases where there is
+    # a steep step between the background and foreground
+    index = index[0]
+    if index == 0:
+        index_low = 0
+    else:
+        index_low = index-1
+    if index == len(thresholds)-1:
+        index_high = len(thresholds)-1
+    else:
+        index_high = index+1 
+    return constrain((thresholds[index_low]+thresholds[index_high]) / 2)    
 
 def running_variance(x):
     '''Given a vector x, compute the variance for x[0:i]
@@ -307,7 +317,7 @@ def running_variance(x):
     return numpy.hstack(([0],var))
 
 
-def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
+def classify_image(infile, thresh1):
     '''
     classify image with Otsu's thresholds
     '''
@@ -332,9 +342,7 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
         for j in range(cols):
             if 0.0 <= glacierraster[i,j] < thresh1:
                 glacierraster[i,j] = 1.0
-            elif thresh1 <= glacierraster[i,j] < thresh2:
-                glacierraster[i,j] = 2.0
-            elif thresh2 <= glacierraster[i,j] <= 1.0:
+            elif thresh1 <= glacierraster[i,j] <= 1.0:
                 glacierraster[i,j] = 3.0
             else:
                 glacierraster[i,j] = -999.0
@@ -389,7 +397,7 @@ def PolygonizeGST(infile):
     print '\n Convert ', infile, ' to shapefile.'
     os.system('gdal_polygonize.py ' + infile + ' -f "ESRI Shapefile" ' + outfile)    
     
-def PlotHistogram(infile, thresh1, thresh2):
+def PlotHistogram(infile, thresh1):
     ''' plots histogram '''
     
     # Define filenames
@@ -407,7 +415,6 @@ def PlotHistogram(infile, thresh1, thresh2):
     plt.figure()
     plt.hist(raster.flatten(), 128, range = (-25.0, 10.0))
     plt.axvline(x=thresh1, ymin=0, ymax=6000, linewidth=1, color='r')
-    plt.axvline(x=thresh2, ymin=0, ymax=6000, linewidth=1, color='r')
     plt.title(inSARfileshortname)
     
     plt.savefig(histfilename)
@@ -493,12 +500,12 @@ def RenameFiles(inshapefile):
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\AustreBroggerbreen2000_Buffer.shp'
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hansbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Uversbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Osbornebreen2000_Buffer.shp'
@@ -540,26 +547,26 @@ for inSARfile in filelist:
     print 'Minimum and Maximum are ', oldmin,' ',  oldmax
     
     #Call Otsu's method
-    (thresh1, thresh2) = otsu3(inSARcrop)
-    print 'Calculated thresholds are ', thresh1,' ',  thresh2
+    (thresh1) = otsu(inSARcrop)
+    print 'Calculated threshold is ', thresh1
     print
     
     #Calculate back threshold in dB
     thresh1dB = (oldmax-oldmin) * thresh1 + oldmin
-    thresh2dB = (oldmax-oldmin) * thresh2 + oldmin
-    print 'Calculated thresholds in dB are ', thresh1dB,' ',  thresh2dB
+
+    print 'Calculated thresholds in dB is ', thresh1dB
      
     
     #write thresholds to file
     filename = inSARfilepath + '\\' + 'thresholds.txt'
     f = open(filename, 'a')
-    f.write(inSARcrop + ' ' +  str(thresh1dB) + ' ' +  str(thresh2dB)+ "\n")
+    f.write(inSARcrop + ' ' +  str(thresh1dB) + ' \n')
     f.close()
     #plot histogram
-    PlotHistogram(inSARfile, thresh1dB, thresh2dB)
+    PlotHistogram(inSARfile, thresh1dB)
     
     #Apply the thresholds gotten by Otsu
-    classify_image(inSARcrop, thresh1, thresh2)
+    classify_image(inSARcrop, thresh1)
     
     #Apply Sieve filter to remove noise
     ApplySieve(inSARcrop)
