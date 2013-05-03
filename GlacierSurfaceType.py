@@ -4,6 +4,8 @@ Created on Mon Feb 25 09:04:29 2013
 
 @author: max
 
+THIS VERSION GREW AND GREW AND NEED CLEAN UP IN MANY WAYS
+
 Classification into Glacier Surface Types
 
     Steps:        
@@ -35,7 +37,7 @@ Classification into Glacier Surface Types
 
 #import modules
 
-import ogr, os, gdal, numpy, glob, shutil
+import ogr, os, gdal, numpy, glob, shutil, sys
 import matplotlib.pyplot as plt
 
 
@@ -311,6 +313,8 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     '''
     classify image with Otsu's thresholds
     '''
+    (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
+    (infileshortname, inextension) = os.path.splitext(infilename)
     
     #Open Rasterfile and Mask
     driver = gdal.GetDriverByName('GTiff')
@@ -340,6 +344,21 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
                 glacierraster[i,j] = -999.0
     
    
+    #Calculate numbers of each class
+    ice =  (glacierraster == 1.0).sum()   
+    si =  (glacierraster == 2.0).sum() 
+    firn =  (glacierraster == 2.0).sum() 
+    background = (glacierraster == -999.0).sum()
+    total = glacierraster.size
+    
+    
+    #write occurrences to file
+    filename = infilepath + '\\' + 'class_count.txt'
+    f = open(filename, 'a')
+    f.write(infileshortname + ' ' +  str(ice) + ' ' +  str(si) +  str(firn) + ' ' +  str(background) +  ' ' + str(total) + "\n")
+    f.close()    
+    
+    
     # Write outraster to file
     dsband.WriteArray(glacierraster)
     dsband.FlushCache()
@@ -378,7 +397,7 @@ def ApplySieve(infile):
             
     
 
-def PolygonizeGST(infile):
+def PolygonizeGST(infile, inshapefile):
     '''
     creates shapefile out of GST raster
     '''
@@ -386,8 +405,41 @@ def PolygonizeGST(infile):
     (infileshortname, extension) = os.path.splitext(infilename)
     outfile = infilepath + '/' + infileshortname + '.shp'    
     
+    (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
+    (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
+    
+    glaciername = inshapefileshortname[:-11]
+    quality = 1 # Set 1 to 6 for quality
+    
     print '\n Convert ', infile, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + infile + ' -f "ESRI Shapefile" ' + outfile)    
+    os.system('gdal_polygonize.py ' + infile + ' -f "ESRI Shapefile" ' + outfile + ' GST')    
+    
+    #Add glaciername
+    driver = ogr.GetDriverByName('ESRI Shapefile')
+    indataset = driver.Open(outfile, 1)
+    if indataset is None:
+        print ' Could not open file'
+        sys.exit(1)
+    inlayer = indataset.GetLayer()
+    
+    fieldDefn = ogr.FieldDefn( 'glacier', ogr.OFTString)
+    fieldDefn.SetWidth(20)
+    inlayer.CreateField(fieldDefn)
+    
+    fieldDefn2 = ogr.FieldDefn('quality', ogr.OFTInteger)
+    inlayer.CreateField(fieldDefn2)
+    
+    feature = inlayer.GetNextFeature()
+    while feature:
+        feature.SetField('glacier', glaciername )
+        feature.SetField('quality', quality )
+        inlayer.SetFeature(feature)
+        feature.Destroy
+        feature = inlayer.GetNextFeature()
+    
+       
+    #close the shapefiles
+    indataset.Destroy()
     
 def PlotHistogram(infile, thresh1, thresh2):
     ''' plots histogram '''
@@ -488,7 +540,7 @@ def RenameFiles(inshapefile):
 #Core of Program follows
 
 #Define location and name of glaciermask
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Sv+albard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Monacobreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
@@ -497,13 +549,15 @@ def RenameFiles(inshapefile):
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Uversbreen2000_Buffer.shp'
-#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Osbornebreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Wahlenbergbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kuhrbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Negribreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Nordsysselbreen2000_Buffer.shp'
 
 
 
@@ -565,7 +619,7 @@ for inSARfile in filelist:
     ApplySieve(inSARcrop)
     
     #Convert GST raster to GST shapefile
-    PolygonizeGST(inSARcrop)
+    PolygonizeGST(inSARcrop, inshapefile)
     
 #end for
 
