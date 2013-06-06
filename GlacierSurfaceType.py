@@ -309,14 +309,19 @@ def running_variance(x):
     return numpy.hstack(([0],var))
 
 
-def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
+def classify_image(infile, inshapefile, thresh1 = 0.0, thresh2 = 1.0):
     '''
     classify image with Otsu's thresholds
     '''
     (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
     (infileshortname, inextension) = os.path.splitext(infilename)
     
-    #Open Rasterfile and Mask
+    (inshapefilepath, inshapefilename) = os.path.split(inshapefile)             #get path and filename seperately
+    (inshapefileshortname, inshapeextension) = os.path.splitext(inshapefilename)
+    
+    glaciername = inshapefileshortname[:-11] + infileshortname[6:10]
+   
+   #Open Rasterfile and Mask
     driver = gdal.GetDriverByName('GTiff')
     driver.Register()
     ds = gdal.Open(infile, gdal.GA_Update)
@@ -347,7 +352,7 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     #Calculate numbers of each class
     ice =  (glacierraster == 1.0).sum()   
     si =  (glacierraster == 2.0).sum() 
-    firn =  (glacierraster == 2.0).sum() 
+    firn =  (glacierraster == 3.0).sum() 
     background = (glacierraster == -999.0).sum()
     total = glacierraster.size
     
@@ -355,7 +360,7 @@ def classify_image(infile, thresh1 = 0.0, thresh2 = 1.0):
     #write occurrences to file
     filename = infilepath + '\\' + 'class_count.txt'
     f = open(filename, 'a')
-    f.write(infileshortname + ' ' +  str(ice) + ' ' +  str(si) +  str(firn) + ' ' +  str(background) +  ' ' + str(total) + "\n")
+    f.write(glaciername + ' ' +  str(ice) + ' ' +  str(si) + ' ' +  str(firn) + ' ' +  str(background) +  ' ' + str(total) + "\n")
     f.close()    
     
     
@@ -549,7 +554,7 @@ def RenameFiles(inshapefile):
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hayesbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Ulvebreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Uversbreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Etonbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Holtedalfonna2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Aavatsmarkbreen2000_Buffer.shp'
@@ -558,9 +563,13 @@ inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Comfortlessbreen2000
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Kuhrbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Negribreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Nordsysselbreen2000_Buffer.shp'
-
-
-
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Borebreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Edvardbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Nordsysselbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Nathorstbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Penckbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Veteranbreen2000_Buffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hinlopenbreen2000_Buffer.shp'
 
 # Define location and name of GeoTIFF containing SAR image
 # Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 
@@ -613,7 +622,7 @@ for inSARfile in filelist:
     PlotHistogram(inSARfile, thresh1dB, thresh2dB)
     
     #Apply the thresholds gotten by Otsu
-    classify_image(inSARcrop, thresh1, thresh2)
+    classify_image(inSARcrop, inshapefile, thresh1, thresh2)
     
     #Apply Sieve filter to remove noise
     ApplySieve(inSARcrop)
