@@ -223,7 +223,7 @@ def ProcessRaster():
     filelist = glob.glob('C:\Users\max\Documents\Icecharts\Arcus\EPSG3575\*.tif')
     
     NumberOfDays = len(filelist)
-    print NumberOfDays
+    
     firstfilename = filelist[0]
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
@@ -286,6 +286,7 @@ def ProcessRaster():
         
         #Process the image
         #outarray = 0
+        
         for i in range(rows):
             for j in range(cols):
                 if iceraster[i,j] == 0:
@@ -321,39 +322,36 @@ def ProcessRaster():
 
 
 def AddMissingDays():
-    ''' searches through mid-march til end of April files and replace
-    missing rasterconverted ice chart files with the nearest available previous one
     '''
+    
+    searches through files and replace
+    missing rasterconverted ice chart files with the nearest available previous one
+
+    '''
+
     # Create a list of all available raster icechart files
     filelist = sorted(glob.glob('C:\Users\max\Documents\Icecharts\Arcus\EPSG3575\*EPSG3575.tif'))
-    
-    #Settings
-    #Year to be analyzed but then from 15 March til 30 April -- read from first file
-    year = int(filelist[0][51:55])
-        
-    
     outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Arcus\\EPSG3575'
     
     print 'Search for missing files and replace with precious ones'
+    
     #register all gdal drivers
     gdal.AllRegister()
-    
-
-    
-    #Check all dates in march
+      
     #Read first filename and determine first available date, format mmdd
-    date = filelist[0][55:59]
-    month = int(filelist[0][55:57])
+    date = filelist[0][55:59]             # textstring "mmdd"
+    month = filelist[0][55:57]            # monthstring "mm"
+    year = int(filelist[0][51:55])      
     
-    startday = int(filelist[0][57:59])
+    startday = int(filelist[0][57:59])  #first available file
     
     #Determine number of days depending on month
-    if (month % 2) == 0:
+    if (int(month) % 2) == 0:
         days = 30
     else: 
         days = 31
         
-    if month == 2: 
+    if int(month) == 2: 
         days = 28
         
   
@@ -361,30 +359,42 @@ def AddMissingDays():
     for i in range(startday, days+1):
         
         #compile file name to be searched for
-        filename = outfilepath + '\\ice' + str(year) + str(date) + '_EPSG3575.tif'
-        print filename
+        if i < 10:    #if < 10, the '0' in '06' gets lost in integer conversion -- needed in filename       
+            filename = outfilepath + '\\ice' + str(year) + str(month) + '0' + str(i) + '_EPSG3575.tif'
+            date = str(month) + '0' + str(i)
+        else: 
+            filename = outfilepath + '\\ice' + str(year) + str(month) + str(i) +'_EPSG3575.tif'
+            date = str(month) + str(i)
         
-        if (filename in filelist) == False:
-            
-            previousdate = date[0:2] + str(int(date[2:4])-1)
-            replacingfile = outfilepath + '\\ice' + str(year) + previousdate + '_EPSG3575.tif'
-            
-            j = i-1
-            while (replacingfile in filelist) == False:
-                j = j-1
-                replacingfile = outfilepath + '\\ice' + str(year) + previousdate + '_EPSG3575.tif'
-                src_ds = gdal.Open( replacingfile )
+    
+        
+        
+        #Check if file available
+        #Loop backwards and find the closest available file before the missing one 
+        j = i
+        replacingfile = filename
+        while (replacingfile in filelist) == False:
+            j = j-1  #look one day before
                 
-            print 'WARNING: ice' + str(year) + '0' + str(i) + '_EPSG3575.tif replaced with ice' + str(year) + previousdate + '_EPSG3575.tif'
-           
-            
+            if j < 10:         #the '0' is missing in '01', '02' when j<10   
+                replacingfile = outfilepath + '\\ice' + str(year) + str(month) + '0' + str(j) + '_EPSG3575.tif'
+            else: 
+                replacingfile = outfilepath + '\\ice' + str(year) + str(month) + str(j) +'_EPSG3575.tif'
+        
+        #If again original file not on list, replace with the above determined replacingfile
+        if (filename in filelist) == False:
+        
             src_ds = gdal.Open( replacingfile )
             if src_ds is None:
                 print 'Could not open ', replacingfile
             driver = src_ds.GetDriver()
             driver.Register()
             dst_ds = driver.CreateCopy(filename, src_ds , 0 )
-    
+            
+            
+            (filenamepath, filenamename) = os.path.split(filename) 
+            (replacingfilepath, replacingfilename) = os.path.split(replacingfile) 
+            print 'WARNING: ' + filenamename + ' replaced with ice ' + replacingfilename
             # close properly the dataset
             dst_ds = None
             src_ds = None
@@ -433,17 +443,17 @@ def MeanMap():
     print '\n Thresholding Map to 30%.'
     #Process the image
     
-    #outarray[30 < iceraster <= 100] = 30
-    #outarray[iceraster < 30] = 0
-    #outarray[iceraster == 999] = 999
-    for i in range(rows):
-       for j in range(cols):
-            if 30 <= iceraster[i,j] <= 100:
-               outarray[i,j] = 30 
-            elif iceraster[i,j] < 30:
-                outarray[i,j] = 0
-            elif iceraster[i,j] == 999:
-                outarray[i,j] = 999
+    outarray = numpy.where( (iceraster >=30) & (iceraster <= 100), 30, 0)
+    outarray[iceraster == 999] = 999
+    
+    #for i in range(rows):
+    #   for j in range(cols):
+    #        if 30 <= iceraster[i,j] <= 100:
+    #           outarray[i,j] = 30 
+    #        elif iceraster[i,j] < 30:
+    #            outarray[i,j] = 0
+    #        elif iceraster[i,j] == 999:
+    #            outarray[i,j] = 999
             
 
     
