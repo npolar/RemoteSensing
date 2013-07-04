@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jan 31 07:38:16 2013
+Created on Thu Jul 03 2013
 
 Extracts Radarsat sathav scenes containing a selected point geographical point.
 The point (svalbard_x, svalbard_y) is searched in the EPSG3575 quicklooks
-Subsets the file to wanted area
-  or
-Calibrates and terraincorrects the image calling NEST
+
+Steps:
+Extract files including the location
+ExtractRadarsat()
+
+Geocode with gdalwarp
+GeocodeGdalwarp(svalbardlist)
+
+Geocode and Process with NEST
+ProcessNest(svalbardlist)
+
+
+
 
 @author: max
 """
