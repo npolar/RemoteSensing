@@ -23,7 +23,7 @@ ProcessNest(svalbardlist)
 
 
 
-import zipfile, glob, os, shutil, gdal
+import zipfile, glob, os, shutil, gdal, fnmatch
 
 def ExtractRadarsat():
     '''
@@ -59,7 +59,7 @@ def ExtractRadarsat():
         driver = gdal.GetDriverByName('GTiff')
         driver.Register()
         dataset = gdal.Open(radarsatfile, gdal.GA_ReadOnly)
-    
+        raster = dataset.ReadAsArray()
         
         geotrans = dataset.GetGeoTransform()
         cols = dataset.RasterXSize
@@ -96,6 +96,7 @@ def ExtractRadarsat():
         
                 
         dataset = None
+        
     #end for    
     
     return(svalbardlist)
@@ -207,19 +208,52 @@ def ProcessNest(svalbardlist):
     print   
     print 'Done'
 
+def ConvertENVItoGEOTIFF():
+    
+    sourcefolder = 'F:\\Jack\\'  
+    #recursive compiling file list
+    filelist = []
+    for root, dirnames, filenames in os.walk(sourcefolder):
+        for filename in fnmatch.filter(filenames, '*.img'):
+            filelist.append(os.path.join(root, filename))
+    
+    print filelist
+    
+    for convertfile in filelist:
+        
+        #Various file paths and names:    
+        (convertfilepath, convertfilename) = os.path.split(convertfile)             
+        (convertfileshortname, extension) = os.path.splitext(convertfilename)
+        (radarsatname) = os.path.basename(convertfilepath)    
+        polarisation = convertfilename[7:-7]
+        
+        sourcefile = convertfile
+        destinationfile = sourcefolder + radarsatname[0:-5] + '_' + polarisation + '.tif'
+        
+        print
+        print 'Converting: '
+        print '\nfrom ' + sourcefile
+        print '\nto ' + destinationfile
+        
+        #Convert from BEAM-DIMAP to GeoTIFF
+        #os.system("gdal_translate -of GTiff " + sourcefile + " " +  destinationfile)
+        
+        
 ###############################
 # CORE OF PROGRAM FOLLOWS HERE 
 ###############################
 
 
 #Extract matching images
-svalbardlist = ExtractRadarsat()
+#svalbardlist = ExtractRadarsat()
 
 #Geocode with gdal
 #GeocodeGdalwarp(svalbardlist)
 
 #Geocode and Process with Nest
-ProcessNest(svalbardlist)
+#ProcessNest(svalbardlist)
+
+ConvertENVItoGEOTIFF()
 
 
 
