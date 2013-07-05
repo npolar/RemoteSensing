@@ -33,8 +33,12 @@ def ExtractRadarsat():
     '''
     
     #Point to be included in image
-    svalbard_x = 60000.0        #Values in EPSG3575
-    svalbard_y = -1234000.0      #Values in EPSG3575    
+    #svalbard_x = 60000.0        #Values in EPSG3575
+    #svalbard_y = -1234000.0      #Values in EPSG3575  
+    
+    #Inglefieldbukta
+    svalbard_x = 210000.0
+    svalbard_y = -1304000.0
     
     #If results to be copied this is destinationfolder
     destinationfolder = 'F:\\Jack\\'
@@ -162,9 +166,9 @@ def ProcessNest(svalbardlist):
         #Define names of input and outputfile
         #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
         gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname[0:-9] + '\\product.xml'
-        outputfilename1 = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_reproj_EPSG3575.dim'
-        outputfilename2 = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_SARSIM_EPSG32633.dim'
-        outputsubset = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_EPSG32633_Svalbard.tif'
+        outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_TC_EPSG3575.dim'
+        #outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_SARSIM_EPSG32633.dim'
+        
         
         #Extract the zipfile
         zfile = zipfile.ZipFile(svalbardzipfile, 'r')
@@ -180,7 +184,7 @@ def ProcessNest(svalbardlist):
         print "calibration and speckle and SARSIM"
         print
         print "inputfile " + svalbardfileshortname[0:-9]
-        print "outputfile " + outputfilename2
+        print "outputfile " + outputfilename
         print
         print "if terraincorrect, this may take some time per image (> 1h)..."
         
@@ -188,7 +192,12 @@ def ProcessNest(svalbardlist):
         
         #This one for sea ice -- calibration and map projection
         #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename1 + '"' )
-        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_SarsimTC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename2 + '"' )
+        #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_SarsimTC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename2 + '"' )
+        
+        #This one for Range Doppler Correction
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename + '"' )
+                
+        
         #Remove folder where extracted and temporary files are stored
         shutil.rmtree(svalbardfilepath + '\\' + svalbardfileshortname[0:-9] )
     
