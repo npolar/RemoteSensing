@@ -39,13 +39,15 @@ def ExtractRadarsat():
     #Inglefieldbukta
     svalbard_x = 210000.0
     svalbard_y = -1304000.0
+    svalbard2_x = 233000.0
+    svalbard2_y = -1304000.0
     
     #If results to be copied this is destinationfolder
-    destinationfolder = 'F:\\Jack\\'
+    destinationfolder = 'F:\\Gunnar\\'
     
     #List of quicklooks in folder
     #filelist = glob.glob(r'C:\Users\max\Documents\trash\*.zip')
-    filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\06_June\*EPSG3575.tif')
+    filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\03_Mars\*EPSG3575.tif')
     
     #list containing matching images
     svalbardlist = []
@@ -59,7 +61,11 @@ def ExtractRadarsat():
         driver = gdal.GetDriverByName('GTiff')
         driver.Register()
         dataset = gdal.Open(radarsatfile, gdal.GA_ReadOnly)
-        raster = dataset.ReadAsArray()
+        band = dataset.GetRasterBand(1)
+        raster = band.ReadAsArray()
+        
+        
+        
         
         geotrans = dataset.GetGeoTransform()
         cols = dataset.RasterXSize
@@ -73,12 +79,26 @@ def ExtractRadarsat():
         lowerright_x = upperleft_x + pixelwidth * cols
         lowerright_y = upperleft_y + pixelheight * rows
         
+     
+        
         #Textfile to receive list of matching files
-        filename = 'F:\\Jack\\' + 'selectedSAR.txt'
+        filename = destinationfolder + 'selectedSAR.txt'
         
         #  check if svalbard_x, svalbard_y contained in image
-        if upperleft_x < svalbard_x < lowerright_x:
-            if upperleft_y >  svalbard_y > lowerright_y:
+        #if upperleft_x < svalbard_x < lowerright_x:
+        #    if upperleft_y >  svalbard_y > lowerright_y:
+                
+        #Two points in Inglefieldbukta
+        if ((upperleft_x < svalbard_x < lowerright_x) and (upperleft_x < svalbard2_x < lowerright_x)):
+            if ((upperleft_y >  svalbard_y > lowerright_y) and (upperleft_y >  svalbard2_y > lowerright_y)):
+                
+                
+                #Find pixel for svalbard_x and svalbard_y to see if NaN being 0 in quicklook
+                svalbard_x_col = int((svalbard_x - upperleft_x) / pixelwidth)
+                svalbard_y_row = int((svalbard_y - upperleft_y) / pixelwidth)
+                if (raster[svalbard_y_row, svalbard_x_col] == 0):
+                    continue
+                
                 svalbardlist.append(radarsatfile)
                 print ' matches: ', radarsatfile
                 #append matching file to textfile            
@@ -96,6 +116,7 @@ def ExtractRadarsat():
         
                 
         dataset = None
+        raster = None
         
     #end for    
     
@@ -118,7 +139,7 @@ def GeocodeGdalwarp(svalbardlist):
         #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
         gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname[0:-9] + '\\product.xml'
         outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_EPSG32633.tif'
-        outputsubset = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_EPSG32633_Svalbard.tif'
+        
           
         
         #Extract zipfile
@@ -167,7 +188,7 @@ def ProcessNest(svalbardlist):
         #Define names of input and outputfile
         #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
         gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname[0:-9] + '\\product.xml'
-        outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_TC_EPSG3575.dim'
+        outputfilename = 'F:\\Gunnar\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_TC_EPSG32633.dim'
         #outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_SARSIM_EPSG32633.dim'
         
         
@@ -210,7 +231,7 @@ def ProcessNest(svalbardlist):
 
 def ConvertENVItoGEOTIFF():
     
-    sourcefolder = 'F:\\Jack\\'  
+    sourcefolder = 'F:\\Gunnar\\'  
     #recursive compiling file list
     filelist = []
     for root, dirnames, filenames in os.walk(sourcefolder):
@@ -238,6 +259,13 @@ def ConvertENVItoGEOTIFF():
         #Convert from BEAM-DIMAP to GeoTIFF
         #os.system("gdal_translate -of GTiff " + sourcefile + " " +  destinationfile)
         
+        #Use this one for BEAM-DIMAP to GeoTIFF with subsetting
+        #Kongsvegen, Holtedalfonne
+        #os.system("gdal_translate -of GTiff -projwin 419775 8805374 471689 8737941 " + sourcefile + " " +  destinationfile)
+        
+        #Inglefieldbukta        
+        os.system("gdal_translate -of GTiff -projwin 565000 8750000 727000 8490000 " + sourcefile + " " +  destinationfile)
+        
         
 ###############################
 # CORE OF PROGRAM FOLLOWS HERE 
@@ -245,13 +273,13 @@ def ConvertENVItoGEOTIFF():
 
 
 #Extract matching images
-#svalbardlist = ExtractRadarsat()
+svalbardlist = ExtractRadarsat()
 
 #Geocode with gdal
 #GeocodeGdalwarp(svalbardlist)
 
 #Geocode and Process with Nest
-#ProcessNest(svalbardlist)
+ProcessNest(svalbardlist)
 
 ConvertENVItoGEOTIFF()
 
