@@ -15,7 +15,8 @@ GeocodeGdalwarp(svalbardlist)
 Geocode and Process with NEST
 ProcessNest(svalbardlist)
 
-
+Requirements to run this code see:
+http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on-windows.html
 
 
 @author: max
@@ -27,27 +28,35 @@ import zipfile, glob, os, shutil, gdal, fnmatch
 
 def ExtractRadarsat():
     '''
-    Goes through EPSG3575 quicklooks and writes matching point to textfile
-    or copies them to specfied folder
+    Goes through EPSG3575 quicklooks and writes matching RS-2 files containing 
+    wanted location to textfile or copies them to specfied folder
+    
+    Uses the existing quicklooks to match point, NOT the zipped RS-2 file
     
     '''
     
-    #Point to be included in image
+    #############################################
+    # ADD POINT(S) WHOSE MATCHING IMAGE YOU NEED
+    #############################################
+    
+    #Holtedalfonne
     #svalbard_x = 60000.0        #Values in EPSG3575
-    #svalbard_y = -1234000.0      #Values in EPSG3575  
+    #svalbard_y = -1234000.0      #Values in EPSG3575
+    #svalbard2_x = 60000.0        #Values in EPSG3575
+    #svalbard2_y = -1234000.0      #Values in EPSG3575
     
     #Inglefieldbukta
     svalbard_x = 210000.0
     svalbard_y = -1304000.0
-    svalbard2_x = 233000.0
-    svalbard2_y = -1304000.0
-    
+    svalbard2_x = 250000.0
+    svalbard2_y = -1396000.0
+
     #If results to be copied this is destinationfolder
     destinationfolder = 'F:\\Gunnar\\'
     
     #List of quicklooks in folder
     #filelist = glob.glob(r'C:\Users\max\Documents\trash\*.zip')
-    filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\03_Mars\*EPSG3575.tif')
+    filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\04_April\*EPSG3575.tif')
     
     #list containing matching images
     svalbardlist = []
@@ -84,21 +93,25 @@ def ExtractRadarsat():
         #Textfile to receive list of matching files
         filename = destinationfolder + 'selectedSAR.txt'
         
-        #  check if svalbard_x, svalbard_y contained in image
-        #if upperleft_x < svalbard_x < lowerright_x:
-        #    if upperleft_y >  svalbard_y > lowerright_y:
-                
-        #Two points in Inglefieldbukta
+                   
+        #Check if two points are contained in image
         if ((upperleft_x < svalbard_x < lowerright_x) and (upperleft_x < svalbard2_x < lowerright_x)):
             if ((upperleft_y >  svalbard_y > lowerright_y) and (upperleft_y >  svalbard2_y > lowerright_y)):
                 
-                
+                # point may be in image but in NAN area
                 #Find pixel for svalbard_x and svalbard_y to see if NaN being 0 in quicklook
                 svalbard_x_col = int((svalbard_x - upperleft_x) / pixelwidth)
                 svalbard_y_row = int((svalbard_y - upperleft_y) / pixelwidth)
                 if (raster[svalbard_y_row, svalbard_x_col] == 0):
                     continue
                 
+                #Find pixel for svalbard2_x and svalbard2_y to see if NaN being 0 in quicklook
+                svalbard2_x_col = int((svalbard2_x - upperleft_x) / pixelwidth)
+                svalbard2_y_row = int((svalbard2_y - upperleft_y) / pixelwidth)
+                if (raster[svalbard2_y_row, svalbard2_x_col] == 0):
+                    continue
+                
+                #If image matches location, append to list
                 svalbardlist.append(radarsatfile)
                 print ' matches: ', radarsatfile
                 #append matching file to textfile            
@@ -126,6 +139,7 @@ def GeocodeGdalwarp(svalbardlist):
     '''
     takes matching results from svalbardlist and geocodes them with gdalwarp
     Results for Svalbard not perfect, uncertainty 100-200 meters
+    
     '''
     
     for svalbardfile in svalbardlist:
@@ -208,7 +222,9 @@ def ProcessNest(svalbardlist):
         print "inputfile " + svalbardfileshortname[0:-9]
         print "outputfile " + outputfilename
         print
-        print "if terraincorrect, this may take some time per image (> 1h)..."
+        print "if SARSIM terraincorrect, this may take some time per image (> 1h)..."
+        print "if Range Doppler terraincorrect, around 10 minutes."
+        print
         
         #check that xml file is correct!
         
@@ -230,16 +246,22 @@ def ProcessNest(svalbardlist):
     print 'Done'
 
 def ConvertENVItoGEOTIFF():
+    '''
+    Nest cannot export as GeoTIFF at present.
+    The Beam-Dimap images contain raster with "sigma*.img" names
+    This routines renames them to RS-2 file name and converts to GeoTIFF
+    '''
     
+    #Folder containing the Beam-DIMAP files
     sourcefolder = 'F:\\Gunnar\\'  
-    #recursive compiling file list
+    
+    #recursive checking and compiling file list
     filelist = []
     for root, dirnames, filenames in os.walk(sourcefolder):
         for filename in fnmatch.filter(filenames, '*.img'):
             filelist.append(os.path.join(root, filename))
     
-    print filelist
-    
+    #Loop through filelist    
     for convertfile in filelist:
         
         #Various file paths and names:    
@@ -256,7 +278,10 @@ def ConvertENVItoGEOTIFF():
         print '\nfrom ' + sourcefile
         print '\nto ' + destinationfile
         
+        ####################################
         #Convert from BEAM-DIMAP to GeoTIFF
+        ####################################
+        
         #os.system("gdal_translate -of GTiff " + sourcefile + " " +  destinationfile)
         
         #Use this one for BEAM-DIMAP to GeoTIFF with subsetting
