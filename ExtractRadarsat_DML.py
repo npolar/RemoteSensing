@@ -200,12 +200,13 @@ def ProcessNest(svalbardlist):
         #Various file paths and names:    
         (svalbardfilepath, svalbardfilename) = os.path.split(svalbardfile)             
         (svalbardfileshortname, extension) = os.path.splitext(svalbardfilename)        
-        svalbardzipfile = svalbardfilepath + '\\' + svalbardfileshortname[0:-9] + '.zip'
+        svalbardzipfile = svalbardfilepath + '\\' + svalbardfileshortname + '.zip'
         
         #Define names of input and outputfile
         #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
-        gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname[0:-9] + '\\product.xml'
-        outputfilename = 'Z:\\Projects\\Gunnar\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_TC_EPSG32633.dim'
+        gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname + '\\product.xml'
+        #outputfilename = 'Z:\\Projects\\Kenny\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_reproj_EPSG3031.dim'
+        outputfilename = 'Z:\\Projects\\Kenny\\' +  svalbardfileshortname + '_Cal_Spk_reproj_EPSG3033.dim'
         #outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_SARSIM_EPSG32633.dim'
         
         
@@ -222,7 +223,7 @@ def ProcessNest(svalbardlist):
         print
         print "calibration and speckle and SARSIM"
         print
-        print "inputfile " + svalbardfileshortname[0:-9]
+        print "inputfile " + svalbardfileshortname
         print "outputfile " + outputfilename
         print
         print "if SARSIM terraincorrect, this may take some time per image (> 1h)..."
@@ -236,11 +237,11 @@ def ProcessNest(svalbardlist):
         #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_SarsimTC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename2 + '"' )
         
         #This one for Range Doppler Correction
-        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename + '"' )
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfilename + '"' )
                 
         
         #Remove folder where extracted and temporary files are stored
-        shutil.rmtree(svalbardfilepath + '\\' + svalbardfileshortname[0:-9] )
+        shutil.rmtree(svalbardfilepath + '\\' + svalbardfileshortname )
     
         #Close zipfile
         zfile.close()
@@ -256,7 +257,7 @@ def ConvertENVItoGEOTIFF():
     '''
     
     #Folder containing the Beam-DIMAP files
-    sourcefolder = 'Z:\\Projects\\Gunnar\\'  
+    sourcefolder = 'Z:\\Projects\\Kenny\\'  
     
     #recursive checking and compiling file list
     filelist = []
@@ -291,9 +292,26 @@ def ConvertENVItoGEOTIFF():
         #Kongsvegen, Holtedalfonne
         #os.system("gdal_translate -of GTiff -projwin 419775 8805374 471689 8737941 " + sourcefile + " " +  destinationfile)
         
-        #Inglefieldbukta        
-        os.system("gdal_translate -of GTiff -projwin 565000 8750000 727000 8490000 " + sourcefile + " " +  destinationfile)
+        #DML        
+        os.system("gdal_translate -of GTiff " + sourcefile + " " +  destinationfile)
         
+def ReprojectTo3031():
+    #Folder containing the Beam-DIMAP files
+    sourcefolder = 'Z:\\Projects\\Kenny\\'   
+    
+    filelist = glob.glob(r'Z:\\Projects\\Kenny\\*.tif')
+    
+    for reprojectfile in filelist:
+        #Various file paths and names:    
+        (reprojectfilepath, reprojectfilename) = os.path.split(reprojectfile)             
+        (reprojectfileshortname, extension) = os.path.splitext(reprojectfilename)
+        
+        
+        destinationfile = sourcefolder + reprojectfileshortname + '_EPSG3031.tif'
+        
+        
+        #DML        
+        os.system("gdalwarp -s_srs EPSG:3033 -t_srs EPSG:3031 " + reprojectfile + " " +  destinationfile)
         
 ###############################
 # CORE OF PROGRAM FOLLOWS HERE 
@@ -301,15 +319,20 @@ def ConvertENVItoGEOTIFF():
 
 
 #Extract matching images
-svalbardlist = ExtractRadarsat()
+#svalbardlist = ExtractRadarsat()
+
+#Choose all
+filelist = glob.glob(r'Z:\Radarsat\2013\RS2_201301*.zip')
 
 #Geocode with gdal
 #GeocodeGdalwarp(svalbardlist)
 
 #Geocode and Process with Nest
-ProcessNest(svalbardlist)
+ProcessNest(filelist)
 
 ConvertENVItoGEOTIFF()
+
+ReprojectTo3031()
 
 print "Done"
 
