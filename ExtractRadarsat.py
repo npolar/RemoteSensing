@@ -284,7 +284,7 @@ def ConvertENVItoGEOTIFF():
         ####################################
         #Convert from BEAM-DIMAP to GeoTIFF
         ####################################
-        
+        # a_srs needs to set projection since info missing in img files
         #os.system("gdal_translate -of GTiff " + sourcefile + " " +  destinationfile)
         
         #Use this one for BEAM-DIMAP to GeoTIFF with subsetting
@@ -292,7 +292,7 @@ def ConvertENVItoGEOTIFF():
         #os.system("gdal_translate -of GTiff -projwin 419775 8805374 471689 8737941 " + sourcefile + " " +  destinationfile)
         
         #Inglefieldbukta        
-        os.system("gdal_translate -of GTiff -projwin 565000 8750000 727000 8490000 " + sourcefile + " " +  destinationfile)
+        os.system("gdal_translate -of GTiff -a_srs EPSG:32633 -projwin 565000 8750000 727000 8490000 " + sourcefile + " " +  destinationfile)
         
         
 ###############################
