@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul 03 2013
+Created on Thu Jul 19 2013
 
 Extracts Radarsat sathav scenes containing a selected point geographical point.
 The point (svalbard_x, svalbard_y) is searched in the EPSG3575 quicklooks
 
 THIS VERSION FOR DRONNING MAUD LAND
 
-Steps:
+Steps (more details in each function):
 
 ExtractRadarsat()
 - Use if only images from a specific location wanted
@@ -36,6 +36,8 @@ import zipfile, glob, os, shutil, gdal, fnmatch
 
 def ExtractRadarsat():
     '''
+    USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
+
     Goes through EPSG3575 quicklooks and writes matching RS-2 files containing 
     wanted location to textfile or copies them to specfied folder
     
@@ -170,10 +172,10 @@ def ProcessNest(svalbardlist):
         svalbardzipfile = svalbardfilepath + '\\' + svalbardfileshortname + '.zip'
         
         #Define names of input and outputfile
-        #gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname + '\\product.xml'
+        gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname + '\\product.xml'
         
         #This path for unusual zip file structure        
-        gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname + '\\' + svalbardfileshortname + '\\product.xml'
+        #gdalsourcefile = svalbardfilepath + '\\' + svalbardfileshortname + '\\' + svalbardfileshortname + '\\product.xml'
         #outputfilename = 'Z:\\Projects\\Kenny\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_reproj_EPSG3031.dim'
         outputfilename = 'Z:\\Projects\\Kenny\\' +  svalbardfileshortname + '_Cal_Spk_reproj.dim'
         #outputfilename = 'F:\\Jack\\' +  svalbardfileshortname[0:-9] + '_Cal_Spk_SARSIM_EPSG32633.dim'
@@ -222,7 +224,8 @@ def ProcessNest(svalbardlist):
 
 def ConvertNESTtoGEOTIFF():
     '''
-    Nest cannot export as GeoTIFF at present.
+    Nest cannot export as GeoTIFF at present. Would also put all channels
+    in one GeoTIFF and I want one channel per GeoTIFF
     The Beam-Dimap images contain raster with "sigma*.img" names
     This routines renames them to RS-2 file name and converts to GeoTIFF
     '''
@@ -290,28 +293,24 @@ def ReprojectTo3031():
         print '\nfrom ' + reprojectfile
         print '\nto ' + destinationfile
         
-        #DML        
+        #DML
+        #Projection t_srs needs to be defined in Proj.4 format otherwise
+        #it is incorrect for 3031 (Local_CS rather then PROJCS)
         os.system("gdalwarp -s_srs EPSG:3033 -t_srs \"+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs \" -srcnodata none -dstnodata 999.0 " + reprojectfile + " " +  destinationfile)
         
-        #Manually open the file and set projection info since Local_CS rather then PROJCS in the above
-        #driver = gdal.GetDriverByName('GTiff')
-        #driver.Register()
-        #dataset = gdal.Open(destinationfile, gdal.GA_Update)
-        #dataset.SetProjection(projection)
         
-        #dataset = None
 
 def GeoTIFFtoJPEG():
            
     '''
     Convert GeoTIFF to JPEG
+    Issue at present -- even though GeoTIFF only 999 as nodata-value, the jpg 
+    contains two nodata values 0 and 255
     '''
+     
     
-    #Folder containing the Beam-DIMAP files
-    sourcefolder = 'Z:\\Projects\\Kenny\\'  
-    
-    #filelist = glob.glob(r'Z:\\Radarsat\\2012\\*3031.tif')
-    filelist = glob.glob(r'Z:\\Projects\\Kenny\\*3031.tif')
+    filelist = glob.glob(r'Z:\\Radarsat\\2013\\*HH_EPSG3031.tif')
+    #filelist = glob.glob(r'Z:\\Projects\\Kenny\\*3031.tif')
     
     #Loop through filelist    
     for convertfile in filelist:
@@ -319,11 +318,11 @@ def GeoTIFFtoJPEG():
         #Various file paths and names:    
         (convertfilepath, convertfilename) = os.path.split(convertfile)             
         (convertfileshortname, extension) = os.path.splitext(convertfilename)
-        (radarsatname) = os.path.basename(convertfilepath)    
+           
         
         
         sourcefile = convertfile
-        destinationfile = sourcefolder + convertfileshortname  + '.jpg'
+        destinationfile = convertfilepath + '\\' + convertfileshortname  + '.jpg'
         
         print
         print 'Converting: '
@@ -342,7 +341,24 @@ def GeoTIFFtoJPEG():
         #os.system("gdal_translate -of GTiff -projwin 419775 8805374 471689 8737941 " + sourcefile + " " +  destinationfile)
         
         #DML        
-        os.system("gdal_translate -scale -ot Byte -of JPEG -a_nodata \"0 255\" " + sourcefile + " " +  destinationfile)   
+        os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + sourcefile + " " +  destinationfile) 
+        
+        
+        #THIS DOES NOT WORK FOR JPG; CANNOT UPDATE WITH JPG DRIVER
+        #driver = gdal.GetDriverByName('JPEG')
+        #driver.Register()
+        #dataset = gdal.Open(destinationfile, gdal.GA_Update)
+        #band = dataset.GetBand(1)
+        #raster = band.ReadAsArray()
+        #raster[raster == 0] = 255
+        #band.WriteArray(raster)
+        #band.FlushCache()
+        
+        #band = None
+        #dataset = None
+        
+        #dataset.SetProjection(projection)
+        
         
         
 ###############################
@@ -354,17 +370,14 @@ def GeoTIFFtoJPEG():
 #svalbardlist = ExtractRadarsat()
 
 #Choose all
-filelist = glob.glob(r'Z:\Radarsat\2012\RS2_2012111*.zip')
-
-#Geocode with gdal
-#GeocodeGdalwarp(svalbardlist)
+filelist = glob.glob(r'Z:\Radarsat\2012\*.zip')
 
 #Geocode and Process with Nest
-#ProcessNest(filelist)
+ProcessNest(filelist)
 
-#ConvertNESTtoGEOTIFF()
+ConvertNESTtoGEOTIFF()
 
-#ReprojectTo3031()
+ReprojectTo3031()
 
 GeoTIFFtoJPEG()
 
