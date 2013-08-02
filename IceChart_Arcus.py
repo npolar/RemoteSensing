@@ -18,9 +18,9 @@ Loop through all shapefiles:
 Then:
 - Add Missing Days: If shapefile is missing, take the one from day before
 
-- Process Raster: Calculate average ice cover
+- Process Raster: Calculate average ice cover, percentage per day
 
-- MeanMap: Create 30% mean map
+- MeanMap: Create 30% mean map, thresholding percentage per day to 30%
 
 
  
@@ -231,7 +231,10 @@ def Shape2Raster(shapefile):
     
 
 def ProcessRaster():
-    ''' code allows adjusting for various calculations on the data '''
+    ''' 
+    Calculates average ice percentage per day within a given pixel
+    
+    '''
     
     #register all gdal drivers
     gdal.AllRegister()
@@ -239,6 +242,7 @@ def ProcessRaster():
     # Iterate through all rasterfiles
     filelist = glob.glob('C:\Users\max\Documents\Icecharts\Arcus\EPSG3575\*.tif')
     
+    #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
     
     firstfilename = filelist[0]
@@ -342,7 +346,7 @@ def AddMissingDays():
     '''
     
     searches through files and replace
-    missing rasterconverted ice chart files with the nearest available previous one
+    missing raster (converted ice chart file) with the nearest available previous one
 
     '''
 
@@ -420,7 +424,11 @@ def AddMissingDays():
     print 'Done replacing missing years'    
 
 def MeanMap():
-    ''' Create Arcus Map
+    ''' 
+    Create Arcus Map
+    
+    Treshhold the percentage per day map to 30%
+    
     '''
     infile =  'C:\\Users\\max\\Documents\\Icecharts\\Arcus\\icechart_processed.tif'
     outfile = 'C:\\Users\\max\\Documents\\Icecharts\\Arcus\\arcus_map.tif'
@@ -499,7 +507,7 @@ def MeanMap():
 
 # Define filepaths
 # name of outputfile = inputname_EPSG3575.shp and inputname_EPSG3575.tif
-# Kit needs between 15/3 and 1/5
+
 
 infilepath = 'C:\\Users\\max\\Documents\\Icecharts\Arcus'
 outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Arcus\\EPSG3575'
