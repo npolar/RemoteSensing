@@ -1,12 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov 12 10:57:28 2012
+Created on 1 May 2013
 
 @author: max
 
 Creates ice charts for Sea Ice Outlook http://www.arcus.org/search/seaiceoutlook/index.php.
 
-Script very quickly written specifically for 2013 maps, needs clean up
+!!!Script very quickly written specifically for 2013 maps, needs clean up!!!
+
+Steps:
+
+Loop through all shapefiles:
+- Reprojects Shapefiles from EPSG4326 to EPSG3575
+
+- Convert Shapefiles to Raster
+
+Then:
+- Add Missing Days: If shapefile is missing, take the one from day before
+
+- Process Raster: Calculate average ice cover
+
+- MeanMap: Create 30% mean map
+
+
+ 
 """
 # Import Modules
 import ogr, osr, os, sys, glob, numpy, gdal, gdalconst
@@ -474,7 +491,10 @@ def MeanMap():
     
     print 'Done Creating Map'        
 #end
+
+###############################
 # Core of Program follows here
+###############################
 
 
 # Define filepaths
