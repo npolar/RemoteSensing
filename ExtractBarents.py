@@ -125,6 +125,8 @@ def ProcessNest(radarsatfile):
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
         destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif'
+        #auxfile is created, name defined to remove it        
+        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif.aux.xml'
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.jpg'
         
@@ -140,10 +142,12 @@ def ProcessNest(radarsatfile):
         os.system("gdalwarp -s_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -t_srs EPSG:3575 " + destinationfile + " " +  destinationfile2)
         
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
-           
+        os.remove(destinationfile)
+        os.remove(auxfile)
+        
     shutil.rmtree(dim_datafolder)
     os.remove(outputfile)
-    os.remove(destinationfile)
+    
     print   
        
 
