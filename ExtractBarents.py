@@ -2,15 +2,85 @@
 """
 Created on August 2013
 
-Extracts and processes Radarsat sathav scenes containing Svalbard
+Extracts Radarsat sathav scenes containing a selected point geographical point.
+Then calibrate and project image to EPSG:3575 as GeoTIFF and JPG
 
-*ExtractRadarsat -- finds images matching the location (UL, LR rectangle)
+Steps (more details in each function):
+    
+RadarsatDetailedQuicklook
+- Creates a rough quicklook
+- subsequently only used to get coordinates and projection
+- better way for this needed in future version
 
-@author: max
+ExtractRadarsat
+- uses location to extract images matching a rectangle
+
+ProcessNest(svalbardlist)
+- Geocode and Process with NEST
+- Convert NEST format toGEOTIFF
+- Reprojectfrom polarstereo To3575
+- needed because NEST only can project to ESPG3575
+
+Requirements to run this code see:
+http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on-windows.html
+
+ISSUES AT PRESENT:
+- better way to get corner coordinates
+- two no data values in GeoTIFF and JPG due to reprojecting twice
+- solve NEST reprojection issue (does not do all)
+- ideally scenes containing Svalbard should be terraincorrected
+- Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
 
 import zipfile, glob, os, shutil, gdal
 
+
+def RadarsatDetailedQuicklook(radarsatfile):
+    '''
+    Takes the Radarsat-2 zipfile and creates a map projected quicklook from 
+    the imagery_HH file
+    '''
+    
+    
+    #Split names and extensions
+    (infilepath, infilename) = os.path.split(radarsatfile)
+    (infileshortname, extension) = os.path.splitext(infilename)
+    
+    #Open zipfile
+    zfile = zipfile.ZipFile(radarsatfile, 'r')
+    print    
+    print "Decompressing image for " + infilename + " on " + infilepath    
+    
+    #Extract imagery file from zipfile
+    zfile.extractall(infilepath)
+    
+    #Define names
+    #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
+    gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
+    outputfilename = infilepath + '\\' + infileshortname + '\\' + infileshortname + '_EPSG3575.tif'
+    browseimage = infilepath + '\\' + infileshortname + '_EPSG3575.tif'
+    
+    #Call gdalwarp
+    print
+    print "map projecting file"
+    print
+    os.system('gdalwarp -tps  -t_srs \"+proj=laea +lat_0=90 +lon_0=10 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs\" ' + gdalsourcefile + ' ' + outputfilename )  
+    
+    
+    #Call gdaltranslate    
+    print
+    print "downsampling file"
+    print
+    os.system('gdal_translate -ot byte -outsize 8% 8% -scale 0 50000 0 255 ' + outputfilename + ' ' + browseimage )
+
+    #Remove folder where extracted and temporary files are stored
+    shutil.rmtree(infilepath + '\\' + infileshortname )
+    
+    #Close zipfile
+    zfile.close()
+    
+    return outputfilename
+    
 def ExtractRadarsat(radarsatfile, location):
     '''
     USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
@@ -103,7 +173,7 @@ def ProcessNest(radarsatfile):
     
     #check that xml file is correct!
     
-    #This one for Range Doppler Correction
+    #Process using NEST
     os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
@@ -122,10 +192,12 @@ def ProcessNest(radarsatfile):
     dim_datafolder = outputfilenamepath + '//' + outputfileshortname + '.data'
     dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
     dimlist = glob.glob(dim_datafile)
+    
+    #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
         destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif'
-        #auxfile is created, name defined to remove it        
+        #auxfile is created automatically by NEST, name defined to remove it       
         auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif.aux.xml'
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.jpg'
@@ -136,15 +208,20 @@ def ProcessNest(radarsatfile):
         print '\nto ' + destinationfile
         
         
-        
+        #Convert toGeoTIFF
         os.system("gdal_translate -a_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -stats -of GTiff  " + envifile + " " +  destinationfile)
         
+        #Reproject to EPSG:3575
         os.system("gdalwarp -s_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -t_srs EPSG:3575 " + destinationfile + " " +  destinationfile2)
         
+        #Convert to JPG
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        
+        #Remove original GeoTIFF in 3033 since we now have 3575        
         os.remove(destinationfile)
         os.remove(auxfile)
-        
+    
+    #Remove BEAM-DIMAP files from NEST      
     shutil.rmtree(dim_datafolder)
     os.remove(outputfile)
     
@@ -158,7 +235,7 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\08_August\*.zip')
+filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\06_June\RS2_2013060*.zip')
 
 #Define Area Of Interest
 upperleft_x = 8000.0
@@ -170,6 +247,9 @@ location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
 
 #Loop through filelist and process
 for radarsatfile in filelist:
+    
+    #Create Quicklook from which area is determined (not very good solution)
+    outputfile = RadarsatDetailedQuicklook(radarsatfile)
     
     #Check if file contains parts of Area Of Interest
     #contained = ExtractRadarsat(radarsatfile, location)
@@ -183,7 +263,9 @@ for radarsatfile in filelist:
     #Process image
     ProcessNest(radarsatfile)
     
+    #Remove quicklook as jpeg no available
+    os.remove(outputfile)
 
-print 'finished extracting Svalbard images'
+print 'finished extracting Barents images'
 
 #Done

@@ -4,7 +4,6 @@ Created on Thu Jul 19 2013
 
 Extracts Radarsat sathav scenes containing a selected point geographical point.
 Then calibrate and project image to EPSG:3031 as GeoTIFF and JPG
-The point (svalbard_x, svalbard_y) is searched in the EPSG3575 quicklooks
 
 THIS VERSION FOR DRONNING MAUD LAND
 
@@ -28,6 +27,10 @@ ProcessNest(svalbardlist)
 Requirements to run this code see:
 http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on-windows.html
 
+ISSUES AT PRESENT:
+- better way to get corner coordinates
+- two no data values in GeoTIFF and JPG due to reprojecting twice
+- solve NEST reprojection issue (does not do all)
 
 @author: max
 """
