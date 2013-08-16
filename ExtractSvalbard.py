@@ -124,6 +124,8 @@ def ExtractRadarsat(radarsatfile, location):
            
     #Check if two points are contained in image
     contained = False
+    print upperleft_x , location[0] , lowerright_x, upperleft_x , location[2]  , lowerright_x
+    print upperleft_y ,  location[1] , lowerright_y, upperleft_y ,  location[3] , lowerright_y
     if ((upperleft_x < location[0] < lowerright_x) and (upperleft_x < location[2]  < lowerright_x)):
         if ((upperleft_y >  location[1] > lowerright_y) and (upperleft_y >  location[3] > lowerright_y)):
             contained = True   
@@ -226,7 +228,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'C:\\Users\\max\\Documents\\test\\RS2_20130202_064802*.zip')
+filelist = glob.glob(r'C:\\Users\\max\\Documents\\test\\RS2_2013020*.zip')
 outputfilepath = 'C:\\Users\\max\\Documents\\Jack\\'
 
 #Define Area Of Interest
@@ -237,9 +239,9 @@ outputfilepath = 'C:\\Users\\max\\Documents\\Jack\\'
 
 #Holtedalfonne
 upperleft_x = 419726.0
-upperleft_y = 8737956.0      
+upperleft_y =  8805375.0       
 lowerright_x = 471648.0        
-lowerright_y = 8805375.0     
+lowerright_y = 8737956.0    
 
 #Inglefieldbukta
 #upperleft_x = 210000.0
