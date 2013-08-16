@@ -27,6 +27,7 @@ http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on
 ISSUES AT PRESENT:
 - better way to get corner coordinates
 - two no data values in GeoTIFF and JPG due to reprojecting twice
+- check if scene contains too much NAN
 - solve NEST reprojection issue (does not do all)
 - ideally scenes containing Svalbard should be terraincorrected
 - Svalbard area usually has EPSG32633 and Barents EPSG 3575
@@ -78,7 +79,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     #Close zipfile
     zfile.close()
     
-    return outputfilename
+    return browseimage
 
     
 def ExtractRadarsat(radarsatfile, location):

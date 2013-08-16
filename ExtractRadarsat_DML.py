@@ -80,7 +80,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     zfile.close()
     
     #return name of quicklookfile so that it can be deleted at the end
-    return outputfilename    
+    return browseimage    
     
     
 

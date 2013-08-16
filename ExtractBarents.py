@@ -79,7 +79,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     #Close zipfile
     zfile.close()
     
-    return outputfilename
+    return browseimage
     
 def ExtractRadarsat(radarsatfile, location):
     '''
@@ -235,7 +235,7 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\06_June\RS2_2013060*.zip')
+filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\08_August\RS2_20130813*.zip')
 
 #Define Area Of Interest
 upperleft_x = 8000.0
