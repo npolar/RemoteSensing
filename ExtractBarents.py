@@ -235,7 +235,7 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\08_August\RS2_20130813*.zip')
+filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\09_September\RS2_20130926*.zip')
 
 #Define Area Of Interest
 upperleft_x = 8000.0

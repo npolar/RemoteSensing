@@ -72,7 +72,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     print "downsampling file"
     print
     os.system('gdal_translate -ot byte -outsize 8% 8% -scale 0 50000 0 255 ' + outputfilename + ' ' + browseimage )
-
+    
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(infilepath + '\\' + infileshortname )
     
@@ -108,7 +108,11 @@ def ExtractRadarsat(radarsatfile, location):
     driver = gdal.GetDriverByName('GTiff')
     driver.Register()
     dataset = gdal.Open(radarsatquicklook, gdal.GA_ReadOnly)
-  
+    
+    contained = False     
+    if dataset == None:
+        return contained
+    
     #Get Geoinformation
     geotrans = dataset.GetGeoTransform()
     cols = dataset.RasterXSize
@@ -131,9 +135,13 @@ def ExtractRadarsat(radarsatfile, location):
         if ((upperleft_y >  location[1] > lowerright_y) and (upperleft_y >  location[3] > lowerright_y)):
             contained = True   
             print radarsatfile + ' matches'
+            
+    #quicklook can be removed since now jpg produced
+    dataset = None     
+    os.remove(radarsatquicklook)
     
     return contained            
-    dataset = None
+    
     
 def ProcessNest(radarsatfile, outputfilepath, location):
     '''
@@ -206,10 +214,10 @@ def ProcessNest(radarsatfile, outputfilepath, location):
         print '\nto ' + destinationfile
         
         
-        upperleft_x = str(location[0])        #Values in EPSG3575
-        upperleft_y = str(location[1])     #Values in EPSG3575
-        lowerright_x = str(location[2])        #Values in EPSG3575
-        lowerright_y = str(location[3])       #Values in EPSG3575
+        upperleft_x = str(location[0])        
+        upperleft_y = str(location[1])     
+        lowerright_x = str(location[2])    
+        lowerright_y = str(location[3])   
         
         #Inglefieldbukta        
         os.system("gdal_translate -a_srs EPSG:32633 -stats -of GTiff -projwin " + upperleft_x  + " " + upperleft_y  + " " + lowerright_x  + " " + lowerright_y  + " " + envifile + " " +  destinationfile)
@@ -229,8 +237,8 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'C:\\Users\\max\\Documents\\test\\RS2_2013020*.zip')
-outputfilepath = 'C:\\Users\\max\\Documents\\Jack\\'
+filelist = glob.glob(r'Z:\\Radarsat\\Sathav\\2011\\06_June\\RS2_20110605_17*.zip')
+outputfilepath = 'Z:\\Radarsat\\Sathav\\processed_images\\Storfjorden\\2011_06_June'
 
 #Define Area Of Interest
 #upperleft_x = 8000.0
@@ -239,16 +247,16 @@ outputfilepath = 'C:\\Users\\max\\Documents\\Jack\\'
 #lowerright_y = -1495000.0
 
 #Holtedalfonne
-upperleft_x = 419726.0
-upperleft_y =  8805375.0       
-lowerright_x = 471648.0        
-lowerright_y = 8737956.0    
+#upperleft_x = 419726.0
+#upperleft_y =  8805375.0       
+#lowerright_x = 471648.0        
+#lowerright_y = 8737956.0    
 
 #Inglefieldbukta
-#upperleft_x = 210000.0
-#upperleft_y = -1304000.0
-#lowerright_x = 250000.0
-#lowerright_y = -1396000.0
+upperleft_x = 564955.9196850983425975
+upperleft_y = 8750041.7983950804919004 
+lowerright_x = 726949.9692189423367381
+lowerright_y = 8490034.1236895751208067
 
 
 location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
@@ -260,6 +268,7 @@ for radarsatfile in filelist:
     outputfile = RadarsatDetailedQuicklook(radarsatfile)
     
     #Check if file contains parts of Area Of Interest
+       
     contained = ExtractRadarsat(radarsatfile, location)
     
     #If not within Area Of Interest
