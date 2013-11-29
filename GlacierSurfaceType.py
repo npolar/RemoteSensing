@@ -139,6 +139,8 @@ def MaskGlacier(inshapefile, inSARfile):
             else:
                 glacierraster[i,j] = -999.0
     
+   
+    
     # Set NoData Value
     dsband.SetNoDataValue(-999.0)
            
@@ -337,6 +339,13 @@ def classify_image(infile, inshapefile, thresh1 = 0.0, thresh2 = 1.0):
     
     #Process the image
     print 'Classifying ', infile
+    
+    #case1 = numpy.where( (glacierraster >= 0.0) & (glacierraster < thresh1), 1.0, 0.0)
+    #case2 = numpy.where( (glacierraster >= thresh1) & (glacierraster < thresh2), 2.0, 0.0)
+    #case3 = numpy.where( (glacierraster >= thresh2) & (glacierraster <= 1.0), 3.0, 0.0)
+    #case4 = numpy.where( (glacierraster > 1.0), numpy.nan, 0.0)   
+    #glacierraster = case1 + case2 + case3 + case4 
+    
     for i in range(rows):
         for j in range(cols):
             if 0.0 <= glacierraster[i,j] < thresh1:
@@ -545,7 +554,7 @@ def RenameFiles(inshapefile):
 #Core of Program follows
 
 #Define location and name of glaciermask
-#inshapefile = 'C:\Users\max\Documents\Sv+albard\glaciermasks\KongsvegenBuffer.shp'
+inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\KongsvegenBuffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Monacobreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Lilliehookbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Fjortendejulibreen2000_Buffer.shp'
@@ -569,7 +578,7 @@ def RenameFiles(inshapefile):
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Nathorstbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Penckbreen2000_Buffer.shp'
 #inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Veteranbreen2000_Buffer.shp'
-inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hinlopenbreen2000_Buffer.shp'
+#inshapefile = 'C:\Users\max\Documents\Svalbard\glaciermasks\Hinlopenbreen2000_Buffer.shp'
 
 # Define location and name of GeoTIFF containing SAR image
 # Convert from BEAM-DIMAP with Nest>Graphs>Batch Processing 

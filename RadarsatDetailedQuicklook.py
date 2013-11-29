@@ -13,7 +13,7 @@ import zipfile, glob, os, shutil
 
 #List of zip-files to be extracted
 #filelist = glob.glob(r'C:\Users\max\Documents\trash\*.zip')
-filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\03_Mars\temp\*.zip')
+filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\09_September\RS2_20130911_07*.zip')
 
 
 #Loop through zipfiles, extract and create quicklook

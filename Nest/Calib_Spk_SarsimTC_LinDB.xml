@@ -14,7 +14,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
-      <auxFile>Latest Auxiliary File</auxFile>
+      <auxFile/>
       <externalAuxFile/>
       <outputImageInComplex>false</outputImageInComplex>
       <outputImageScaleInDb>false</outputImageScaleInDb>
@@ -49,7 +49,7 @@
       </sourceBands>
       <demName>External DEM</demName>
       <demResamplingMethod>BILINEAR_INTERPOLATION</demResamplingMethod>
-      <externalDEMFile>C:\Users\max\Documents\Svalbard\GIS\DTM\dem20subsetNorth.tif</externalDEMFile>
+      <externalDEMFile>C:\Users\max\Documents\Svalbard\GIS\DTM\dem20subsetNW.tif</externalDEMFile>
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <saveLayoverShadowMask>false</saveLayoverShadowMask>
     </parameters>

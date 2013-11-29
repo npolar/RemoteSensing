@@ -21,7 +21,7 @@ def CountIcetype(infile):
     (infileshortname, extension) = os.path.splitext(infilename)
     
     (outputfilepath, directory)  = os.path.split(infilepath)
-    outputtextfile = outputfilepath + '\\' + infileshortname + '_Count.txt'
+    outputtextfile = outputfilepath + '\\' + infileshortname + '_Count_Kongsfjord.txt'
     
     # register all of the GDAL drivers
     gdal.AllRegister()
@@ -107,11 +107,12 @@ def CountIcetype(infile):
     
 #Core of Program
 
-infilepath = 'G:\Icecharts\Data\\Kit'
-outfilepath = 'G:\Icecharts\Data'
+infilepath = 'F:\Icecharts\Data\\Kit'
+outfilepath = 'F:\Icecharts\Data'
 
 # Iterate through all shapefiles
-filelist = glob.glob('G:\Icecharts\Data\*\icechart_processed*.tif')
+#filelist = glob.glob('F:\Icecharts\Data\*\icechart_processed_Kongsfjord*.tif')
+filelist = glob.glob('F:\Icecharts\IsfjordHeli\icechart_processed_isfjord_Heli_1998.tif')
 
 for icechart in filelist:
     

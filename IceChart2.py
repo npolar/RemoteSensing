@@ -71,7 +71,6 @@ def ReprojectShapefile(infile):
     #Loop through input features and write to output file
     infeature = inlayer.GetNextFeature()
     while infeature:
-        
         # for some files geometryRef does not exist. skip it
         try:
             #get the input geometry
@@ -112,7 +111,20 @@ def ReprojectShapefile(infile):
     
     return reprshapefile
 
-
+def ReprojectShapefile2(infile):
+    
+    #Define outputfile name
+    (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+    reprshapepath = infilepath + '\\EPSG3575'
+    reprshapeshortname = infileshortname + '_EPSG3575'
+    reprshapefile = reprshapepath + '\\'+ reprshapeshortname + extension
+    
+    print 'Reproject Shapefile'
+    os.system('ogr2ogr -s_srs EPSG:4326 -t_srs EPSG:3575 ' + reprshapefile + ' ' + infile )
+    print 'Done Reproject'
+    return reprshapefile
+    
     
 def Shape2Raster(shapefile):
     '''
@@ -456,8 +468,8 @@ filelist = glob.glob('C:\Users\max\Documents\Icecharts\Data\Kit\*.shp')
 
 for icechart in filelist:
     
-    reprshapefile = ReprojectShapefile(icechart)
-    
+    #reprshapefile = ReprojectShapefile(icechart)
+    reprshapefile = ReprojectShapefile2(icechart)
     Shape2Raster(reprshapefile)
     
     #set shapefile to None so that it stays None in case reprojection fails.
