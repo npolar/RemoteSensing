@@ -57,7 +57,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     #Define names
     #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
     gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
-    outputfilename = infilepath + '\\' + infileshortname + '_EPSG3031.tif'
+    outputfilename = infilepath + '\\' + infileshortname + '_temp_EPSG3031.tif'
     browseimage = infilepath + '\\' + infileshortname + '_EPSG3031.tif'
     
     #Call gdalwarp
@@ -80,6 +80,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     zfile.close()
     
     #return name of quicklookfile so that it can be deleted at the end
+    os.remove(outputfilename)
     return browseimage    
     
     
@@ -159,6 +160,8 @@ def ProcessNest(radarsatfile):
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
         
+        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
+        
         print
         print 'Converting: '
         print '\nfrom ' + envifile
@@ -174,10 +177,12 @@ def ProcessNest(radarsatfile):
         #Create JPG
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
+        #Create small jpeg
+        os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        
         #Remove original GeoTIFF in 3033 since we now have 3031
         os.remove(destinationfile)
-        os.remove(auxfile)
-    
+        
     #Remove BEAM-DIMAP files from NEST    
     shutil.rmtree(dim_datafolder)
     os.remove(outputfile)
@@ -191,7 +196,8 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\Radarsat\2013\RS2_20131126_012545_0041*.zip')
+#filelist = glob.glob(r'Z:\Radarsat\2013\RS2_2013111*.zip')
+filelist = glob.glob(r'G:\satellittdata\DML\RS2_201312*.zip')
 
 
 #Loop through filelist and process
