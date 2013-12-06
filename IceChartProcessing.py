@@ -7,7 +7,7 @@ Processing met.no ice charts
 @author: max
 """
 # Import Modules
-import ogr, osr, os, sys, glob, numpy, gdal, gdalconst
+import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime
 
 
 
@@ -21,6 +21,8 @@ def ReprojectShapefile(infile, inproj, outproj):
     
     inproj and outproj in format "EPSG:3575", for the filename the ":" is 
     removed in the function
+    
+    Assumes existence of folder as "EPSG3575" or "EPSG32633" or...
     '''
     
     #Define outputfile name
@@ -137,7 +139,79 @@ def Shape2Raster(shapefile, rasterresolution, location):
     print "\n \n Done rasterizing", shapefilename, '\n'
     
 
+def AddMissingDays(outfilepath):
+    '''
+    if file is missing, replace by previous one
+    
+    look through all files located at outfilepath
+    '''
+    #register all gdal drivers
+    gdal.AllRegister()    
+    
+    # Create a list of all available raster icechart files
+    filelist = sorted(glob.glob(outfilepath + "\\*.tif"))
+    
+    #Get first dates filename -- backwards works when name ice20120131_EPSG3575.tif
+    date1 = int(filelist[0][-21:-13])
+    year1 = int(filelist[0][-21:-17])
+    month1 = int(filelist[0][-17:-15])   
+    day1 = int(filelist[0][-15:-13])
+    
+    #Get last dates from filesname
+    date2 = int(filelist[-1][-21:-13])
+    year2 = int(filelist[-1][-21:-17])
+    month2 = int(filelist[-1][-17:-15])   
+    day2 = int(filelist[-1][-15:-13])
+    
+    #http://pymotw.com/2/datetime/
+    #http://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
+    d1 =  datetime.date(year1, month1, day1)
+    d2 =  datetime.date(year2, month2, day2)
+    diff = datetime.timedelta(days=1)
+    
+    #date3 is working date to be looped through  -- set to start date   
+    date3 = date1
+    d3 = d1
+    
+    print 'Search for missing files and replace with precious ones'
+    
+    while date3 != date2:
+        
+        #Create filename whose existence is to be checked
+        checkfilename = outfilepath + "ice" + d3.strftime('%Y%m%d') +  filelist[1][-13:]
+                
+        if (checkfilename in filelist) is False:
+            
+            #Create filename previous day
+            previousday = d3 - diff
+            replacingfile = outfilepath + "ice" + previousday.strftime('%Y%m%d') +  filelist[1][-13:]
+            
+            #Replace by previous day         
+            print  os.path.split(checkfilename)[1] + " is missing!"
+            print "Replacing " + os.path.split(checkfilename)[1] + " with " + os.path.split(replacingfile)[1]
+            print
+            
+            src_ds = gdal.Open( replacingfile )
+            if src_ds is None:
+                print 'Could not open ', replacingfile
+            driver = src_ds.GetDriver()
+            driver.Register()
+            dst_ds = driver.CreateCopy(checkfilename, src_ds , 0 )
+    
+            # close properly the dataset
+            dst_ds = None
+            src_ds = None
+            
+            ##### ADD SHAPEFILES TO BE REPLACED AS WELL #######
+            
+            
+        #Increase working date for next loop
+        date3 = int((d3 + diff).strftime('%Y%m%d'))         
+        d3 = (d3 + diff)
 
+                
+  
+    print "Done replacing missing dates"    
 
 ##############################################################################
 #  Core of program follows here
@@ -145,7 +219,7 @@ def Shape2Raster(shapefile, rasterresolution, location):
 
 # Path where shapefiles are located and output files to be stored
 infilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\'
-outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\EPSG3575'
+outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\EPSG3575\\'
 
 
 
@@ -170,6 +244,11 @@ y_lowright = -1590000.0
 
 location = [x_origin, y_origin, x_lowright, y_lowright]
 
+###  landmask path located in Shape2Raster but should remain fixed ###
+
+################### END ADJUST PARAMETERS ####################################
+
+
 
 # Iterate through all shapefiles
 filelist = glob.glob(infilepath + '*.shp')
@@ -181,11 +260,17 @@ for icechart in filelist:
     
     #Convert Shapefile to Raster
     Shape2Raster(reprshapefile, rasterresolution, location)
-
+    
+    #set shapefile to None so that it stays None in case reprojection fails.
+    reprshapefile = None
 
 #Add Missing Days (like weekends or faulty shapefile)
+AddMissingDays(outfilepath) 
 
 #Process Raster
 
 
 
+print "Done"
+
+#End
