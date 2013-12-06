@@ -171,11 +171,14 @@ def ProcessNest(radarsatfile):
         #Convert to GeoTIFF
         os.system("gdal_translate -a_nodata None -a_srs EPSG:3033 -of GTiff " + envifile + " " +  destinationfile)
         
+        
         #Reproject to EPSG 3031
         os.system("gdalwarp -s_srs EPSG:3033 -t_srs \"+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs \" -srcnodata none -dstnodata 999.0 " + destinationfile + " " +  destinationfile2)
+        os.system("gdaladdo -r NEAREST -ro " + destinationfile2 + " 2 4 8 16 32 64")  #Build overviews
         
         #Create JPG
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        os.system("gdaladdo -r NEAREST -ro " + jpegfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create small jpeg
         os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
@@ -196,8 +199,8 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-#filelist = glob.glob(r'Z:\Radarsat\2013\RS2_2013111*.zip')
-filelist = glob.glob(r'G:\satellittdata\DML\RS2_201312*.zip')
+#filelist = glob.glob(r'Z:\Radarsat\2013\RS2_20131126_012545_0041*.zip')
+filelist = glob.glob(r'G:\satellittdata\DML\RS2*.zip')
 
 
 #Loop through filelist and process
