@@ -197,7 +197,6 @@ def AddMissingDays(outfilepath):
             #Replace by previous day         
             print  os.path.split(checkfilename)[1] + " is missing!"
             print "Replacing " + os.path.split(checkfilename)[1] + " with " + os.path.split(replacingfile)[1]
-            print
             
             src_ds = gdal.Open( replacingfile )
             if src_ds is None:
@@ -214,7 +213,8 @@ def AddMissingDays(outfilepath):
             
             checkshapefilename = outfilepath + "ice" + d3.strftime('%Y%m%d') +  filelist[1][-13:-4]
             replacingshapefile =  outfilepath + "ice" + previousday.strftime('%Y%m%d') +  filelist[1][-13:-4]
-            print "Replacing " + checkshapefilename +".shp" + " with " + replacingshapefile + ".shp"
+            print "Replacing " + os.path.split(checkshapefilename)[1] +".shp" + " with " + os.path.split(replacingshapefile)[1] + ".shp"
+            print
             shutil.copy((replacingshapefile +".shp"), (checkshapefilename + ".shp"))
             shutil.copy((replacingshapefile +".shx"), (checkshapefilename + ".shx"))
             shutil.copy((replacingshapefile +".dbf"), (checkshapefilename + ".dbf"))
