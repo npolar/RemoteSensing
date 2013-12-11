@@ -4,10 +4,17 @@ Created on Tue Dec 03 13:31:59 2013
 
 Processing met.no ice charts
 
+Parameters are set in Core of the Program, see below all functions
+
+
+ * ReprojectShapefile -- reprojects the shapefile
+ * Shape2Raster -- converts shapefile to GeoTIFF raster
+ * AddMissingDays -- a missing file is replaced with the next available previous day.
+
 @author: max
 """
 # Import Modules
-import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime
+import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil
 
 
 
@@ -172,7 +179,7 @@ def AddMissingDays(outfilepath):
     #date3 is working date to be looped through  -- set to start date   
     date3 = date1
     d3 = d1
-    
+
     print 'Search for missing files and replace with precious ones'
     
     while date3 != date2:
@@ -185,6 +192,7 @@ def AddMissingDays(outfilepath):
             #Create filename previous day
             previousday = d3 - diff
             replacingfile = outfilepath + "ice" + previousday.strftime('%Y%m%d') +  filelist[1][-13:]
+            
             
             #Replace by previous day         
             print  os.path.split(checkfilename)[1] + " is missing!"
@@ -204,6 +212,13 @@ def AddMissingDays(outfilepath):
             
             ##### ADD SHAPEFILES TO BE REPLACED AS WELL #######
             
+            checkshapefilename = outfilepath + "ice" + d3.strftime('%Y%m%d') +  filelist[1][-13:-4]
+            replacingshapefile =  outfilepath + "ice" + previousday.strftime('%Y%m%d') +  filelist[1][-13:-4]
+            print "Replacing " + checkshapefilename +".shp" + " with " + replacingshapefile + ".shp"
+            shutil.copy((replacingshapefile +".shp"), (checkshapefilename + ".shp"))
+            shutil.copy((replacingshapefile +".shx"), (checkshapefilename + ".shx"))
+            shutil.copy((replacingshapefile +".dbf"), (checkshapefilename + ".dbf"))
+            shutil.copy((replacingshapefile +".prj"), (checkshapefilename + ".prj"))
             
         #Increase working date for next loop
         date3 = int((d3 + diff).strftime('%Y%m%d'))         
