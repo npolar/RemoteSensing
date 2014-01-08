@@ -209,8 +209,8 @@ def AddMissingDays(outfilepath):
             dst_ds = None
             src_ds = None
             
-            ##### ADD SHAPEFILES TO BE REPLACED AS WELL #######
             
+            #Replace missing shapefile by previous one            
             checkshapefilename = outfilepath + "ice" + d3.strftime('%Y%m%d') +  filelist[1][-13:-4]
             replacingshapefile =  outfilepath + "ice" + previousday.strftime('%Y%m%d') +  filelist[1][-13:-4]
             print "Replacing " + os.path.split(checkshapefilename)[1] +".shp" + " with " + os.path.split(replacingshapefile)[1] + ".shp"
@@ -227,6 +227,105 @@ def AddMissingDays(outfilepath):
                 
   
     print "Done replacing missing dates"    
+    
+    
+def CreateMapFastIceDays(outfilepath):
+    '''
+    Creates Map where number indicates days with fast ice, 999 is land
+    '''
+    
+    #register all gdal drivers
+    gdal.AllRegister()
+    
+    # Iterate through all rasterfiles
+    filelist = glob.glob(outfilepath + '*.tif')
+    
+    firstfilename = filelist[0]
+    #Define file names 
+    (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+        
+    outfile = outfilepath + 'icechart_fasticedays.tif'
+    
+    ##### Create copy of original Tiff which then receives the processed map #####    
+    #open the IceChart
+    icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
+    if firstfilename is None:
+        print 'Could not open ', firstfilename
+        return
+    #get image size
+    rows = icechart.RasterYSize
+    cols = icechart.RasterXSize    
+    #create output images
+    driver = icechart.GetDriver()
+    outraster = driver.Create(outfile, cols, rows, 1, gdal.GDT_Float64 )
+    if outraster is None: 
+        print 'Could not create ', outfile
+        return
+    
+    # Set Geotransform and projection for outraster
+    outraster.SetGeoTransform(icechart.GetGeoTransform())
+    outraster.SetProjection(icechart.GetProjection())
+    
+    rows = outraster.RasterYSize
+    cols = outraster.RasterXSize
+    raster = numpy.zeros((rows, cols), numpy.float) 
+    outraster.GetRasterBand(1).WriteArray( raster )
+    
+    #Create output array and fill with zeros
+    outarray = numpy.zeros((rows, cols), numpy.float)    
+    
+    #Loop through all files to do calculation
+    for infile in filelist:
+        
+        (infilepath, infilename) = os.path.split(infile)
+        print 'Processing ', infilename
+        
+        #open the IceChart
+        icechart = gdal.Open(infile, gdalconst.GA_ReadOnly)
+        if infile is None:
+            print 'Could not open ', infilename
+            return
+        
+        #get image size
+        rows = icechart.RasterYSize
+        cols = icechart.RasterXSize
+                
+        #get the bands 
+        outband = outraster.GetRasterBand(1)
+        
+
+        
+        #Read input raster into array
+        iceraster = icechart.ReadAsArray()
+        
+        #Process the image
+#        for i in range(rows):
+#            for j in range(cols):
+#                if iceraster[i,j] == 1:
+#                    outarray[i,j] = outarray[i,j] + 1
+#                else:
+#                    outarray[i,j] = 0
+#                    
+#                if iceraster[i,j] == 8:
+#                    outarray[i,j] = 999
+#        
+  
+        outarray = numpy.where( (iceraster ==1), outarray + 1 , 0)
+        outarray = numpy.where( (iceraster ==8), 999 , outarray)
+
+    #Write to file     
+    outband.WriteArray(outarray)
+    outband.FlushCache()
+       
+
+    #Clear arrays and close files
+    outband = None
+    iceraster = None
+    outraster = None
+    outarray = None
+    print 'Done creating map of fastice-days'
+        
 
 ##############################################################################
 #  Core of program follows here
@@ -243,19 +342,20 @@ outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\EPSG3575\\'
 inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
 outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
 
-rasterresolution = 100.0
+#rasterresolution = 100.0   #Svalbard
+rasterresolution = 1000.0
  
 #All the Arctic Ocean
-#x_origin = -3121844.7112938007
-#y_origin = 482494.5951363358
-#x_lowright = 2361155.2887061993
-#y_lowright = -3396505.404863664
+x_origin = -3121844.7112938007
+y_origin = 482494.5951363358
+x_lowright = 2361155.2887061993
+y_lowright = -3396505.404863664
 
 #Svalbard Subset -- Activate if only Svalbard is to be rasterized
-x_origin = -90000.0  
-y_origin = -962000.0
-x_lowright = 505000.0
-y_lowright = -1590000.0
+#x_origin = -90000.0  
+#y_origin = -962000.0
+#x_lowright = 505000.0
+#y_lowright = -1590000.0
 
 location = [x_origin, y_origin, x_lowright, y_lowright]
 
@@ -280,9 +380,12 @@ for icechart in filelist:
     reprshapefile = None
 
 #Add Missing Days (like weekends or faulty shapefile)
-AddMissingDays(outfilepath) 
+AddMissingDays(outfilepath)
 
-#Process Raster
+#Creates map with number of days of fast ice per pixel
+CreateMapFastIceDays(outfilepath)
+
+
 
 
 
