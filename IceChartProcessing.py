@@ -299,18 +299,6 @@ def CreateMapFastIceDays(outfilepath):
         #Read input raster into array
         iceraster = icechart.ReadAsArray()
         
-        #Process the image
-#        for i in range(rows):
-#            for j in range(cols):
-#                if iceraster[i,j] == 1:
-#                    outarray[i,j] = outarray[i,j] + 1
-#                else:
-#                    outarray[i,j] = 0
-#                    
-#                if iceraster[i,j] == 8:
-#                    outarray[i,j] = 999
-#        
-  
         outarray = numpy.where( (iceraster ==1), outarray + 1 , 0)
         outarray = numpy.where( (iceraster ==8), 999 , outarray)
 
