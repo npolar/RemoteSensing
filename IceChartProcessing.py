@@ -10,7 +10,8 @@ Parameters are set in Core of the Program, see below all functions
  * ReprojectShapefile -- reprojects the shapefile
  * Shape2Raster -- converts shapefile to GeoTIFF raster
  * AddMissingDays -- a missing file is replaced with the next available previous day.
-
+ * CreateMapFastIceDays -- a map whose values indicated (non-consecutive) days of fast ice
+ 
 @author: max
 """
 # Import Modules
@@ -65,7 +66,7 @@ def Shape2Raster(shapefile, rasterresolution, location):
     
     # The land area to be masked out, also being a shapefile to be rasterized
     SvalbardCoast = 'C:\Users\max\Documents\Icecharts\landmasks\s100-landp_3575.shp'
-    MainlandCoast = 'C:\Users\max\Documents\Icecharts\landmasks\ArcticSeaNoSval.shp'
+    MainlandCoast = 'C:\Users\max\Documents\Icecharts\landmasks\ArcticSeaNoSval_3575.shp'
     
     print "\n \n Rasterizing", shapefilename, '\n'
     
@@ -140,7 +141,7 @@ def Shape2Raster(shapefile, rasterresolution, location):
     
      # Rasterize Greenland and other land area on top
     print '\n MainlandRaster'
-    os.system('gdal_rasterize  -b 1 -burn 8 -l ArcticSeaNoSval '  +  MainlandCoast + ' ' + outraster)
+    os.system('gdal_rasterize  -b 1 -burn 8 -l ArcticSeaNoSval_3575 '  +  MainlandCoast + ' ' + outraster)
     
     
     print "\n \n Done rasterizing", shapefilename, '\n'
@@ -232,6 +233,7 @@ def AddMissingDays(outfilepath):
 def CreateMapFastIceDays(outfilepath):
     '''
     Creates Map where number indicates days with fast ice, 999 is land
+    not considering if days are consecutive
     '''
     
     #register all gdal drivers
