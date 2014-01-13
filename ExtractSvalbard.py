@@ -190,6 +190,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     
     #This one for Range Doppler Correction
     os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem20.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -241,8 +242,11 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\\Radarsat\\Sathav\\2010\\10_October\\RS2*.zip')
-outputfilepath = 'Z:\\Radarsat\\Sathav\\processed_images\\HoltedalsfonnaKongsfjorden\\2010_10_October'
+#filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
+filelist = glob.glob(r'Z:\\Radarsat\\Sathav\\2013\\07_July\RS2*.zip')
+outputfilepath = 'Z:\\Radarsat\\Sathav\\processed_images\\HoltedalsfonnaKongsfjorden\\2013_7_July'
+#outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
+
 
 #Define Area Of Interest
 #upperleft_x = 8000.0
@@ -261,6 +265,13 @@ lowerright_y = 8737956.0
 #upperleft_y = 8750041.7983950804919004 
 #lowerright_x = 726949.9692189423367381
 #lowerright_y = 8490034.1236895751208067
+
+#Wahlenbergbreen
+
+#upperleft_x = 462579.6007352703018114
+#upperleft_y= 8734288.4610685724765062
+#lowerright_x= 483506.7996030483045615
+#lowerright_y= 8708179.2891478203237057
 
 
 location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]

@@ -334,6 +334,8 @@ def ProcessRaster():
 def AddMissingDays():
     ''' searches through mid-march til end of April files and replace
     missing rasterconverted ice chart files with the nearest available previous one
+    
+    MUCH TOO COMPLICATED ___ LOOK AT IceChartProcessing.py SCRIPT
     '''
     # Create a list of all available raster icechart files
     filelist = sorted(glob.glob('C:\Users\max\Documents\Icecharts\Data\Kit\EPSG3575\*EPSG3575.tif'))

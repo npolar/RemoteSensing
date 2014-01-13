@@ -331,6 +331,7 @@ def CreatePercentageMap(inpath, outfilepath):
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
+    print ", number of days:  ", NumberOfDays
     
     firstfilename = filelist[0]
     #Define file names 
@@ -396,31 +397,33 @@ def CreatePercentageMap(inpath, outfilepath):
 #        for i in range(rows):
 #            for j in range(cols):
 #                if iceraster[i,j] == 5:
-#                    outarray[i,j] = outarray[i,j] + (  5 / NumberOfDays) 
+#                    outarray[i,j] = outarray[i,j] + (  5.0 / NumberOfDays) 
 #                elif iceraster[i,j] == 25:
-#                    outarray[i,j] = outarray[i,j] + ( 25 / NumberOfDays)
+#                    outarray[i,j] = outarray[i,j] + ( 25.0 / NumberOfDays)
 #                elif iceraster[i,j] == 55:
-#                    outarray[i,j] = outarray[i,j] + ( 55 / NumberOfDays)
+#                    outarray[i,j] = outarray[i,j] + ( 55.0 / NumberOfDays)
 #                elif iceraster[i,j] == 80:
-#                    outarray[i,j] = outarray[i,j] + ( 80 / NumberOfDays)
+#                    outarray[i,j] = outarray[i,j] + ( 80.0 / NumberOfDays)
 #                elif iceraster[i,j] == 95:
-#                    outarray[i,j] = outarray[i,j] + ( 95 / NumberOfDays)
+#                    outarray[i,j] = outarray[i,j] + ( 95.0 / NumberOfDays)
 #                elif iceraster[i,j] == 100:
-#                    outarray[i,j] = outarray[i,j] + (100 / NumberOfDays)
+#                    outarray[i,j] = outarray[i,j] + (100.0 / NumberOfDays)
 #                else:
 #                    outarray[i,j] = 0
 #                    
 #                if iceraster[i,j] == 999:
 #                    outarray[i,j] = 999
-   
-        outarray = numpy.where( (iceraster ==   5), (outarray + (  5 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  25), (outarray + ( 25 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  55), (outarray + ( 55 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  80), (outarray + ( 80 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  95), (outarray + ( 95 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster == 100), (outarray + (100 / NumberOfDays)) , outarray)
+#   
+        outarray = numpy.where( (iceraster ==   5), (outarray + (  5.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  25), (outarray + ( 25.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  55), (outarray + ( 55.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  80), (outarray + ( 80.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  95), (outarray + ( 95.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster == 100), (outarray + (100.0 / NumberOfDays)) , outarray)
         outarray = numpy.where( (iceraster == 999), 999 , outarray)
-
+        #Clear iceraster for next loop -- just in case
+        iceraster = None
+        
     outband.WriteArray(outarray)
     outband.FlushCache()
        
