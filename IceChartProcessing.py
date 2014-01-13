@@ -117,31 +117,31 @@ def Shape2Raster(shapefile, rasterresolution, location):
     # Rasterize first Ice Type and at same time create file -- call gdal_rasterize commandline
     print '\n Open Water'
     #os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -burn 2 -l ' + shapefileshortname +' -tr 1000 -1000 ' +  shapefile + ' ' + outraster)
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -b 1 -burn 2 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -b 1 -burn 5 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
         
     # Rasterize the other Ice types, adding them to the already created file
     print '\nVery Open Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Open Drift Ice\'\" -b 1 -burn 3 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Open Drift Ice\'\" -b 1 -burn 25 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Open Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Drift Ice\'\" -b 1 -burn 4 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Drift Ice\'\" -b 1 -burn 55 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Close Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Close Drift Ice\'\" -b 1 -burn 5 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Close Drift Ice\'\" -b 1 -burn 80 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Very Close Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Close Drift Ice\'\" -b 1 -burn 6 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Close Drift Ice\'\" -b 1 -burn 95 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Fast Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Fast Ice\'\" -b 1 -burn 1 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Fast Ice\'\" -b 1 -burn 100 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     # Rasterize Spitsbergen land area on top
     print '\n SvalbardRaster'
-    os.system('gdal_rasterize  -b 1 -burn 8 -l s100-landp_3575 '  +  SvalbardCoast + ' ' + outraster)
+    os.system('gdal_rasterize  -b 1 -burn 999 -l s100-landp_3575 '  +  SvalbardCoast + ' ' + outraster)
     
      # Rasterize Greenland and other land area on top
     print '\n MainlandRaster'
-    os.system('gdal_rasterize  -b 1 -burn 8 -l ArcticSeaNoSval_3575 '  +  MainlandCoast + ' ' + outraster)
+    os.system('gdal_rasterize  -b 1 -burn 999 -l ArcticSeaNoSval_3575 '  +  MainlandCoast + ' ' + outraster)
     
     
     print "\n \n Done rasterizing", shapefilename, '\n'
@@ -230,7 +230,7 @@ def AddMissingDays(outfilepath):
     print "Done replacing missing dates"    
     
     
-def CreateMapFastIceDays(outfilepath):
+def CreateMapFastIceDays(inpath, outfilepath):
     '''
     Creates Map where number indicates days with fast ice, 999 is land
     not considering if days are consecutive
@@ -247,7 +247,7 @@ def CreateMapFastIceDays(outfilepath):
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
         
-    outfile = outfilepath + 'icechart_fasticedays.tif'
+    outfile = inpath + 'icechart_fasticedays.tif'
     
     ##### Create copy of original Tiff which then receives the processed map #####    
     #open the IceChart
@@ -301,8 +301,8 @@ def CreateMapFastIceDays(outfilepath):
         #Read input raster into array
         iceraster = icechart.ReadAsArray()
         
-        outarray = numpy.where( (iceraster ==1), outarray + 1 , 0)
-        outarray = numpy.where( (iceraster ==8), 999 , outarray)
+        outarray = numpy.where( (iceraster == 100), outarray + 1 , 0)
+        outarray = numpy.where( (iceraster == 999), 999 , outarray)
 
     #Write to file     
     outband.WriteArray(outarray)
@@ -317,13 +317,131 @@ def CreateMapFastIceDays(outfilepath):
     print 'Done creating map of fastice-days'
         
 
+def CreatePercentageMap(inpath, outfilepath):
+    '''
+    Creates map showing percentage ice coverage over a given period
+    
+    '''
+    
+    #register all gdal drivers
+    gdal.AllRegister()
+    
+    # Iterate through all rasterfiles
+    filelist = glob.glob(outfilepath + '*.tif')
+    
+    #Determine Number of Days from available ice chart files
+    NumberOfDays = len(filelist)
+    
+    firstfilename = filelist[0]
+    #Define file names 
+    (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+        
+    outfile = inpath + 'icechart_precentagemap.tif'
+    
+    #open the IceChart
+    icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
+    if firstfilename is None:
+        print 'Could not open ', firstfilename
+        return
+    #get image size
+    rows = icechart.RasterYSize
+    cols = icechart.RasterXSize    
+    #create output images
+    driver = icechart.GetDriver()
+    outraster = driver.Create(outfile, cols, rows, 1, gdal.GDT_Float64 )
+    if outraster is None: 
+        print 'Could not create ', outfile
+        return
+    
+    # Set Geotransform and projection for outraster
+    outraster.SetGeoTransform(icechart.GetGeoTransform())
+    outraster.SetProjection(icechart.GetProjection())
+    
+    rows = outraster.RasterYSize
+    cols = outraster.RasterXSize
+    raster = numpy.zeros((rows, cols), numpy.float) 
+    outraster.GetRasterBand(1).WriteArray( raster )
+    
+    #Create output array and fill with zeros
+    outarray = numpy.zeros((rows, cols), numpy.float)    
+    
+    #Loop through all files to do calculation
+    for infile in filelist:
+        
+        (infilepath, infilename) = os.path.split(infile)
+        print 'Processing ', infilename
+        
+        #open the IceChart
+        icechart = gdal.Open(infile, gdalconst.GA_ReadOnly)
+        if infile is None:
+            print 'Could not open ', infilename
+            return
+        
+        #get image size
+        rows = icechart.RasterYSize
+        cols = icechart.RasterXSize
+                
+        #get the bands 
+        outband = outraster.GetRasterBand(1)
+        
+
+        
+        #Read input raster into array
+        iceraster = icechart.ReadAsArray()
+        
+        #Process the image
+
+        
+#        for i in range(rows):
+#            for j in range(cols):
+#                if iceraster[i,j] == 5:
+#                    outarray[i,j] = outarray[i,j] + (  5 / NumberOfDays) 
+#                elif iceraster[i,j] == 25:
+#                    outarray[i,j] = outarray[i,j] + ( 25 / NumberOfDays)
+#                elif iceraster[i,j] == 55:
+#                    outarray[i,j] = outarray[i,j] + ( 55 / NumberOfDays)
+#                elif iceraster[i,j] == 80:
+#                    outarray[i,j] = outarray[i,j] + ( 80 / NumberOfDays)
+#                elif iceraster[i,j] == 95:
+#                    outarray[i,j] = outarray[i,j] + ( 95 / NumberOfDays)
+#                elif iceraster[i,j] == 100:
+#                    outarray[i,j] = outarray[i,j] + (100 / NumberOfDays)
+#                else:
+#                    outarray[i,j] = 0
+#                    
+#                if iceraster[i,j] == 999:
+#                    outarray[i,j] = 999
+   
+        outarray = numpy.where( (iceraster ==   5), (outarray + (  5 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  25), (outarray + ( 25 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  55), (outarray + ( 55 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  80), (outarray + ( 80 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  95), (outarray + ( 95 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster == 100), (outarray + (100 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster == 999), 999 , outarray)
+
+    outband.WriteArray(outarray)
+    outband.FlushCache()
+       
+
+    #Clear arrays and close files
+    outband = None
+    iceraster = None
+    outraster = None
+    outarray = None
+    print 'Done Creating Percentage Map'
+    
+    
+    
+    
 ##############################################################################
 #  Core of program follows here
 ##############################################################################
 
 # Path where shapefiles are located and output files to be stored
-infilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\'
-outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\Data\\EPSG3575\\'
+infilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\'
+outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\EPSG3575\\'
 
 
 
@@ -333,7 +451,7 @@ inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
 outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
 
 #rasterresolution = 100.0   #Svalbard
-rasterresolution = 1000.0
+rasterresolution = 10000.0
  
 #All the Arctic Ocean
 x_origin = -3121844.7112938007
@@ -373,12 +491,13 @@ for icechart in filelist:
 AddMissingDays(outfilepath)
 
 #Creates map with number of days of fast ice per pixel
-CreateMapFastIceDays(outfilepath)
+CreateMapFastIceDays(infilepath, outfilepath)
+
+#Creates mao showing percentage of sea ice per pixel
+CreatePercentageMap(infilepath, outfilepath)
 
 
 
-
-
-print "Done"
+print "Done IceChartProcessing"
 
 #End
