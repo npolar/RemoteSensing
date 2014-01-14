@@ -393,10 +393,12 @@ def CreatePercentageMap(inpath, outfilepath):
         
         #Process the image
 
-        
+#       #Obsolete pixel-by-pixel version, takes very long
 #        for i in range(rows):
 #            for j in range(cols):
-#                if iceraster[i,j] == 5:
+#                if iceraster[i,j] == 0:
+#                    outarray[i,j] = outarray[i,j] + (  0.0 / NumberOfDays) 
+#                elif iceraster[i,j] == 5:
 #                    outarray[i,j] = outarray[i,j] + (  5.0 / NumberOfDays) 
 #                elif iceraster[i,j] == 25:
 #                    outarray[i,j] = outarray[i,j] + ( 25.0 / NumberOfDays)
@@ -408,19 +410,22 @@ def CreatePercentageMap(inpath, outfilepath):
 #                    outarray[i,j] = outarray[i,j] + ( 95.0 / NumberOfDays)
 #                elif iceraster[i,j] == 100:
 #                    outarray[i,j] = outarray[i,j] + (100.0 / NumberOfDays)
-#                else:
-#                    outarray[i,j] = 0
+#                
 #                    
 #                if iceraster[i,j] == 999:
-#                    outarray[i,j] = 999
-#   
-        outarray = numpy.where( (iceraster ==   5), (outarray + (  5.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  25), (outarray + ( 25.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  55), (outarray + ( 55.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  80), (outarray + ( 80.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster ==  95), (outarray + ( 95.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster == 100), (outarray + (100.0 / NumberOfDays)) , outarray)
-        outarray = numpy.where( (iceraster == 999), 999 , outarray)
+#                    outarray[i,j] = 999.0
+ 
+        #Array calculation with numpy -- much faster
+        outarray = numpy.where( (iceraster ==   0.0), (outarray + (  0.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==   5.0), (outarray + (  5.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  25.0), (outarray + ( 25.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  55.0), (outarray + ( 55.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  80.0), (outarray + ( 80.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster ==  95.0), (outarray + ( 95.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster == 100.0), (outarray + (100.0 / NumberOfDays)) , outarray)
+        outarray = numpy.where( (iceraster == 999.0), 999.0 , outarray)
+    
+       
         #Clear iceraster for next loop -- just in case
         iceraster = None
         
