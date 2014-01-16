@@ -11,6 +11,13 @@ Parameters are set in Core of the Program, see below all functions
  * Shape2Raster -- converts shapefile to GeoTIFF raster
  * AddMissingDays -- a missing file is replaced with the next available previous day.
  * CreateMapFastIceDays -- a map whose values indicated (non-consecutive) days of fast ice
+ * CreatePercentageMap -- map showing percentage sea ice cover over a given period
+ * CreateIceEdgeMap -- map showing ice egde, percentage defining edge given as input
+ 
+ TO COME
+ * CreateConsecFastIceDays -- map showing consecutive days of fast ice (wanted minimum number as input)
+ * CreateDecadalAverage -- map showing decadal percentage coverage (10/20/30 year chosen as input)
+ * CreateDecadalIceEdge -- creating ice edge map from decadal average map (percentage defining edge given as input)
  
 @author: max
 """
@@ -438,10 +445,86 @@ def CreatePercentageMap(inpath, outfilepath):
     iceraster = None
     outraster = None
     outarray = None
+    
+    return outfile
     print 'Done Creating Percentage Map'
     
     
+def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
+    ''' 
+    Create Ice Edge Map
     
+    Treshhold the percentage per day map to 30%
+    
+    '''
+   
+    outfile = outfilepath + 'iceedge_map.tif'
+    outshape = outfilepath + 'iceedge_map.shp'
+    
+    #Open Rasterfile and Mask
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    ds = gdal.Open(percentagemap, gdal.GA_Update)
+
+    
+    #Read input raster into array
+    iceraster = ds.ReadAsArray()
+    
+    #get image max and min and calculate new range
+    rows = ds.RasterYSize
+    cols = ds.RasterXSize
+    
+    #create output images
+    driver = ds.GetDriver()
+    outraster = driver.Create(outfile, cols, rows, 1, gdal.GDT_Float64 )
+    if outraster is None: 
+        print 'Could not create ', outfile
+        return
+    
+    # Set Geotransform and projection for outraster
+    outraster.SetGeoTransform(ds.GetGeoTransform())
+    outraster.SetProjection(ds.GetProjection())
+    
+    rows = outraster.RasterYSize
+    cols = outraster.RasterXSize
+    raster = numpy.zeros((rows, cols), numpy.float) 
+    outraster.GetRasterBand(1).WriteArray( raster )
+    
+    #Create output array and fill with zeros
+    outarray = numpy.zeros((rows, cols), numpy.float)    
+    print '\n Thresholding Map to ' + str(percentage) + '30%.'
+    #Process the image
+    
+    outarray = numpy.where( (iceraster >= percentage) & (iceraster <= 100), percentage, 0)
+    outarray[iceraster == 999] = 999
+    
+    #for i in range(rows):
+    #   for j in range(cols):
+    #        if 30 <= iceraster[i,j] <= 100:
+    #           outarray[i,j] = 30 
+    #        elif iceraster[i,j] < 30:
+    #            outarray[i,j] = 0
+    #        elif iceraster[i,j] == 999:
+    #            outarray[i,j] = 999
+            
+
+    
+    outband = outraster.GetRasterBand(1)
+    outband.WriteArray(outarray)
+    outband.FlushCache()
+    
+
+
+    #Clear arrays and close files
+    outband = None
+    iceraster = None
+    outraster = None
+    outarray = None
+    
+    print '\n Convert ', outfile, ' to shapefile.'
+    os.system('gdal_polygonize.py ' + outfile + ' -f "ESRI Shapefile" ' + outshape + ' Arcus')  
+    
+    print 'Done Creating Ice Edge Map'      
     
 ##############################################################################
 #  Core of program follows here
@@ -459,7 +542,7 @@ inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
 outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
 
 #rasterresolution = 100.0   #Svalbard
-rasterresolution = 10000.0
+rasterresolution = 1000.0
  
 #All the Arctic Ocean
 x_origin = -3121844.7112938007
@@ -501,8 +584,12 @@ AddMissingDays(outfilepath)
 #Creates map with number of days of fast ice per pixel
 CreateMapFastIceDays(infilepath, outfilepath)
 
-#Creates mao showing percentage of sea ice per pixel
-CreatePercentageMap(infilepath, outfilepath)
+#Creates map showing percentage of sea ice per pixel
+outputfile = CreatePercentageMap(infilepath, outfilepath)
+
+#Creates ice edge map
+percentage = 30  #Set percentage for ice edge map
+CreateIceEdgeMap(infilepath, outfilepath, outputfile, percentage)
 
 
 
