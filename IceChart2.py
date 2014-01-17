@@ -296,7 +296,7 @@ def ProcessRaster():
                 if iceraster[i,j] == 1:
                     outarray[i,j] = outarray[i,j] + 1
                 else:
-                    outarray[i,j] = 0
+                    outarray[i,j] = outarray[i,j]
                     
                 if iceraster[i,j] == 8:
                     outarray[i,j] = 999
