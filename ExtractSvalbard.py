@@ -33,7 +33,7 @@ ISSUES AT PRESENT:
 - Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
 
-import zipfile, glob, os, shutil, gdal
+import zipfile, glob, os, shutil, gdal, fnmatch
 
 def RadarsatDetailedQuicklook(radarsatfile):
     '''
@@ -147,7 +147,7 @@ def ExtractRadarsat(radarsatfile, location):
     return contained            
     
     
-def ProcessNest(radarsatfile, outputfilepath, location):
+def ProcessNest(radarsatfile, outputfilepath, location, resolution = 50):
     '''
     Calls Nest SAR Toolbox to calibrate, map project and if wanted 
     terraincorrect images
@@ -189,8 +189,10 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     #check that xml file is correct!
     
     #This one for Range Doppler Correction
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
-    #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem20.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    if resolution == 50:
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    elif resolution == 20:
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem20.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -236,6 +238,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
        
 
 
+
 #############################################################
 # CORE OF PROGRAM FOLLOWS HERE
 #############################################################
@@ -243,8 +246,15 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 # Define filelist to be processed (radarsat zip files)
 #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
-filelist = glob.glob(r'Z:\\Radarsat\\Sathav\\2013\\07_July\RS2*.zip')
-outputfilepath = 'Z:\\Radarsat\\Sathav\\processed_images\\HoltedalsfonnaKongsfjorden\\2013_7_July'
+#filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
+filelist = []
+for root, dirnames, filenames in os.walk('G:\Radarsat\\sathav\\2013'):
+  for filename in fnmatch.filter(filenames, '*.zip'):
+      filelist.append(os.path.join(root, filename))
+
+outputfilepath = 'G:`\satellittdata\\processed_SCNA'
+
+
 #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
 
 
@@ -256,8 +266,8 @@ outputfilepath = 'Z:\\Radarsat\\Sathav\\processed_images\\HoltedalsfonnaKongsfjo
 
 #Holtedalfonne
 upperleft_x = 419726.0
-upperleft_y =  8805375.0       
-lowerright_x = 471648.0        
+upperleft_y =  8812000.0       
+lowerright_x = 475000.0        
 lowerright_y = 8737956.0    
 
 #Inglefieldbukta
@@ -279,6 +289,15 @@ location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
 #Loop through filelist and process
 for radarsatfile in filelist:
     
+    
+    resolution = 50  #for SCWA
+    ###Activate if only SCNA files wanted ###
+    #skip file if SCWA
+    resolution = 20
+    if 'SCWA' in radarsatfile:
+        continue
+    
+    
     #Create Quicklook from which area is determined (not very good solution)
     outputfile = RadarsatDetailedQuicklook(radarsatfile)
     if outputfile == None:
@@ -293,7 +312,13 @@ for radarsatfile in filelist:
         print radarsatfile + ' skipped'
         continue
         
-    
+    resolution = 50  #for SCWA
+    ###Activate if only SCNA files wanted ###
+    #skip file if SCWA
+    resolution = 20
+    if radarsatfile[-37:-33] == 'SCWA':
+        continue
+        
     print radarsatfile + ' processed'
     #Process image
     ProcessNest(radarsatfile, outputfilepath, location)

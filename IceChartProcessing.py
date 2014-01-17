@@ -22,7 +22,7 @@ Parameters are set in Core of the Program, see below all functions
 @author: max
 """
 # Import Modules
-import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil
+import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil, fnmatch
 
 
 
@@ -619,6 +619,7 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
     
     #Has to finish after last run checking last image
     outarray = numpy.where((countingraster < consecutivenumber), 0 , outarray)
+    outarray = numpy.where( (iceraster == 999), 999 , outarray)
 
     
     #Write to file     
