@@ -308,6 +308,7 @@ def CreateMapFastIceDays(inpath, outfilepath):
         #Read input raster into array
         iceraster = icechart.ReadAsArray()
         
+        #Count pixel, if fastice add one, of not keep value -- add land mask
         outarray = numpy.where( (iceraster == 100), outarray + 1 , outarray)
         outarray = numpy.where( (iceraster == 999), 999 , outarray)
 
@@ -637,6 +638,13 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
 #  Core of program follows here
 ##############################################################################
 
+print
+print "*"*31
+print "Running IceChartProcessing"
+print "*"*31
+print
+
+
 # Path where shapefiles are located and output files to be stored
 infilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\'
 outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\EPSG3575\\'
@@ -649,7 +657,7 @@ inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
 outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
 
 #rasterresolution = 100.0   #Svalbard
-rasterresolution = 1000.0
+rasterresolution = 500.0
  
 #All the Arctic Ocean
 x_origin = -3121844.7112938007

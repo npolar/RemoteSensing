@@ -5,14 +5,14 @@ Created on Tue Jan 28 08:30:13 2014
 @author: max
 
 Checks file on ftp for location and downloads matching ones
+
+
 """
 
 import ftplib, os
 
 
 #DEFINE FTP SERVER PARAMETERS
-
-
 ftpserver = 'ftp.npolar.no'
 username = 'anonymous'
 password = 'guest'
@@ -83,6 +83,7 @@ for file in filelist:
         ftp.retrbinary('RETR ' + zipfile, open(zipsavefile, 'wb').write)
         print 'transferred ', zipfile
         
+    #Close ftp connection    
     ftp.quit()
         
 #Remove temporary file
