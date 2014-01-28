@@ -3,21 +3,20 @@
 Created on Tue Jan 28 08:30:13 2014
 
 @author: max
+
+Checks file on ftp for location and downloads matching ones
 """
 
 import ftplib, os
 
 
 #DEFINE FTP SERVER PARAMETERS
-ftpserver = 'ftp3.ksat.no'
-username = "delivery"
-password = "9Wqm8ZhWMnE2"
-workingfolder = '//customers/cache/sathav/'
 
-#ftpserver = 'ftp.npolar.no'
-#username = 'anonymous'
-#password = 'guest'
-#workingfolder = '/Out/max/'
+
+ftpserver = 'ftp.npolar.no'
+username = 'anonymous'
+password = 'guest'
+workingfolder = '/Out/max/'
 
 #temporary file storing location info from quicklook
 output_tempfile = 'C:\Users\max\Desktop\\test.txt'
