@@ -13,6 +13,9 @@ import ftplib, os
 
 
 #DEFINE FTP SERVER PARAMETERS
+
+
+
 ftpserver = 'ftp.npolar.no'
 username = 'anonymous'
 password = 'guest'
