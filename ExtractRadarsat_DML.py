@@ -200,7 +200,7 @@ def ProcessNest(radarsatfile):
 
 # Define filelist to be processed (radarsat zip files)
 #filelist = glob.glob(r'Z:\Radarsat\2013\RS2_20131126_012545_0041*.zip')
-filelist = glob.glob(r'G:\satellittdata\DML\RS2*.zip')
+filelist = glob.glob(r'Z:\Radarsat\2014\RS2_2014011*.zip')
 
 
 #Loop through filelist and process
