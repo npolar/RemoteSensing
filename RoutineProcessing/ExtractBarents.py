@@ -202,6 +202,9 @@ def ProcessNest(radarsatfile):
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.jpg'
         
+        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_40percent.jpg'
+        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_09percent.jpg'
+        
         print
         print 'Converting: '
         print '\nfrom ' + envifile
@@ -215,11 +218,16 @@ def ProcessNest(radarsatfile):
         os.system("gdalwarp -s_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -t_srs EPSG:3575 " + destinationfile + " " +  destinationfile2)
         
         #Convert to JPG
-        os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        
+        #Create small jpeg
+        os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        os.system("gdal_translate -outsize 09% 09% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
+        
         
         #Remove original GeoTIFF in 3033 since we now have 3575        
         os.remove(destinationfile)
-        os.remove(auxfile)
+        #os.remove(auxfile)
     
     #Remove BEAM-DIMAP files from NEST      
     shutil.rmtree(dim_datafolder)
@@ -235,7 +243,7 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'Z:\Radarsat\Sathav\2013\09_September\RS2_20130926*.zip')
+filelist = glob.glob(r'G:\satellittdata\flerbrukBarents\*.zip')
 
 #Define Area Of Interest
 upperleft_x = 8000.0

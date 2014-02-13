@@ -11,11 +11,12 @@ Parameters are set in Core of the Program, see below all functions
  * Shape2Raster -- converts shapefile to GeoTIFF raster
  * AddMissingDays -- a missing file is replaced with the next available previous day.
  * CreateMapFastIceDays -- a map whose values indicated (non-consecutive) days of fast ice
+ * CreateConsecFastIceDays -- map showing consecutive days of fast ice (wanted minimum number as input)
  * CreatePercentageMap -- map showing percentage sea ice cover over a given period
- * CreateIceEdgeMap -- map showing ice egde, percentage defining edge given as input
+ * CreateIceEdgeMap -- map showing ice egde, percentage defining edge given as input, also creating shapefile only containing actual ice edge
  
  TO COME
- * CreateConsecFastIceDays -- map showing consecutive days of fast ice (wanted minimum number as input)
+ 
  * CreateDecadalAverage -- map showing decadal percentage coverage (10/20/30 year chosen as input)
  * CreateDecadalIceEdge -- creating ice edge map from decadal average map (percentage defining edge given as input)
  
@@ -460,7 +461,10 @@ def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
     '''
    
     outfile = inpath + 'iceedge_map.tif'
-    outshape = inpath + 'iceedge_map.shp'
+    outshape_poly = inpath + 'iceedge_map_poly.shp'
+    outshape_line = inpath + 'iceedge_map_line.shp'
+    iceedge_line = inpath + 'iceedge_line.shp'
+    iceedge_temp = inpath + 'iceedge_temp.shp'
     
     #Open Rasterfile and Mask
     driver = gdal.GetDriverByName('GTiff')
@@ -523,7 +527,18 @@ def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
     outarray = None
     
     print '\n Convert ', outfile, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfile + ' -f "ESRI Shapefile" ' + outshape + ' Arcus')  
+    os.system('gdal_polygonize.py ' + outfile + ' -f "ESRI Shapefile" ' + outshape_poly + ' iceedge')  
+    
+    ### Create polyline showing ice edge
+    # Convert polygon to lines
+    print 'Convert ice edge map to Linestring Map'
+    os.system('ogr2ogr -progress -nlt LINESTRING ' + outshape_line + ' ' + outshape_poly)
+    
+    print 'Convert ice edge to Linestring -- Part 1'
+    os.system('ogr2ogr -where DN=0  -progress -clipsrc C:\Users\max\Documents\Icecharts\landmasks\iceshape_3575.shp '+  iceedge_temp + ' ' + outshape_line)
+    print 'Convert ice edge to Linestring -- Part 2'
+    os.system('ogr2ogr -progress -clipsrcwhere DN=30  -clipsrc ' + outshape_poly + ' ' + iceedge_line + ' ' + iceedge_temp )
+    os.remove(iceedge_temp)
     
     print 'Done Creating Ice Edge Map'      
 
@@ -699,6 +714,10 @@ AddMissingDays(outfilepath)
 #Creates map with number of days of fast ice per pixel
 CreateMapFastIceDays(infilepath, outfilepath)
 
+#Create Consecutive Fasticedays
+consecutivenumber = 10
+CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber)
+
 #Creates map showing percentage of sea ice per pixel
 outputfile = CreatePercentageMap(infilepath, outfilepath)
 
@@ -706,9 +725,7 @@ outputfile = CreatePercentageMap(infilepath, outfilepath)
 percentage = 30  #Set percentage for ice edge map
 CreateIceEdgeMap(infilepath, outfilepath, outputfile, percentage)
 
-#Create Consecutive Fasticedays
-consecutivenumber = 10
-CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber)
+
 
 print
 print "*"*23
