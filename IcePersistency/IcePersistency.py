@@ -3,12 +3,73 @@
 Created on Wed Feb 26 08:18:31 2014
 
 @author: max
+ 
+Creating ice persistency maps from NSIDC sea ice concentration charts
+
+* Bin2GeoTiff -- converting binary NSIDC maps to GeoTIFF
+* CreateIcePercistanceMap -- create ice persistence map
+* CreateMaxMinIce -- create min/max ice maps
+* EPSG3411_2_EPSG3575 -- reproject raster from EPSG:3411 to EPSG:3575
+* ReprojectShapefile -- reproject shapefiles from EPSG:3411 to EPSG:3575
+
+Documentation before each function and at https://github.com/npolar/RemoteSensing/wiki/Sea-Ice-Frequency
+
 """
 
 import struct, numpy, gdal, gdalconst, glob, os, osr
 
-def Bin2GeoTiff(infile,outfilepath ):
+def EPSG3411_2_EPSG3575(infile):
+    '''
+    reprojects the infile from NSIDC 3411 to EPSG 3575
+    outputfiel has 25km resolution
+    '''
     
+    (infilepath, infilename) = os.path.split(infile)
+    (infileshortname, extension) = os.path.splitext(infilename)
+    outfile = infilepath + '\\EPSG3575\\' + infileshortname + '_EPSG3575.tif'
+    print ' Reproject ', infile, ' to ', outfile 
+    os.system('gdalwarp -s_srs EPSG:3411 -tr 25000 -25000 -t_srs EPSG:3575 -of GTiff ' + infile + ' ' + outfile)
+    
+def ReprojectShapefile(infile, inproj = "EPSG:3411", outproj = "EPSG:3575"):
+    '''
+    Reprojects the shapefile given in infile
+    
+    inproj and outproj in format "EPSG:3575", for the filename the ":" is 
+    removed in the function
+    
+    Assumes existence of folder as "EPSG3575" or "EPSG32633" or...
+    '''
+    
+    #Define outputfile name
+    (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+    
+    reprshapepath = infilepath + '\\' + outproj[0:4] + outproj[5:9]
+    reprshapeshortname = infileshortname + '_' + outproj[0:4] + outproj[5:9]
+    reprshapefile = reprshapepath + '\\'+ reprshapeshortname + extension
+    
+    #Reproject using ogr commandline
+    print 'Reproject Shapefile'    
+    os.system('ogr2ogr -s_srs ' + inproj + ' -t_srs ' + outproj + ' '  + reprshapefile + ' ' + infile )
+    print 'Done Reproject'
+
+    return reprshapefile    
+
+def Bin2GeoTiff(infile,outfilepath ):
+    '''
+        This function takes the NSIDC charts, being a flat binary string, and converts them to GeoTiff. 
+        This function takes the NSIDC charts, being a flat binary string, and converts them to GeoTiff. Some details here:
+        http://geoinformaticstutorial.blogspot.no/2014/02/reading-binary-data-nsidc-sea-ice.html
+
+        Info on the ice concentration charts: http://nsidc.org/data/docs/daac/nsidc0051_gsfc_seaice.gd.html 
+        Info on the map projection: http://nsidc.org/data/polar_stereo/ps_grids.html
+
+        The GeoTiff files are map projected to EPSG:3411, being the NSIDC-specific projection.
+        There also exists a GeoTiff reprojected to EPSG:3575 which is the NP-standard for Barents/Fram-Strait.
+        Details on how to map project are found here:
+        http://geoinformaticstutorial.blogspot.no/2014/03/geocoding-nsidc-sea-ice-concentration.html
+        
+    '''
     
     #Define file names 
     (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
@@ -39,32 +100,36 @@ def Bin2GeoTiff(infile,outfilepath ):
         print 'Could not create '
         return
     
-    spatialRef = osr.SpatialReference()
-    spatialRef.ImportFromEPSG(3411)
-    outraster.SetProjection(spatialRef.ExportToWkt() )
-    
-    geotransform = (-3850000, 25000 ,0 ,5850000, 0, -25000)
+    geotransform = (-3850000.0, 25000.0 ,0.0 ,5850000.0, 0.0, -25000.0)
     outraster.SetGeoTransform(geotransform)
-    
-    raster = numpy.zeros((height, width ), numpy.float) 
-    outraster.GetRasterBand(1).WriteArray( raster )
-    
     outband = outraster.GetRasterBand(1)
-    
     #Write to file     
     outband.WriteArray(nsidc)
+    
+    spatialRef = osr.SpatialReference()
+    #spatialRef.ImportFromEPSG(3411)  --> this one does for some reason NOT work, but proj4 does
+    spatialRef.ImportFromProj4('+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs')
+    outraster.SetProjection(spatialRef.ExportToWkt() )
     outband.FlushCache()
     
     #Clear arrays and close files
     outband = None
-    raster = None
     outraster = None
     nsidc = None
-
+    
+    #reproject to EPSG3575
+    EPSG3411_2_EPSG3575(outfile)
+    
+    
 def CreateIcePercistanceMap(inpath, outfilepath):
     '''
     Creates map showing percentage ice coverage over a given period
-    
+    This function creates the ice persistence charts. 
+    The function loops through each concentration map, if the value is larger
+    than 38 = 15.2%, the value of "100.0 / NumberOfDays" is added --> if there 
+    is ice every single day, that pixel will be "100"
+
+    Output is available both as EPSG:3411 and EPSG:3575    
     '''
     
     #register all gdal drivers
@@ -157,12 +222,21 @@ def CreateIcePercistanceMap(inpath, outfilepath):
     outraster = None
     outarray = None
     
+    #reproject to EPSG3575
+    EPSG3411_2_EPSG3575(outfile)
+    
     return outfile
-    print 'Done Creating Percentage Map'
+    print 'Done Creating Persistence Map'
     
 def CreateMaxMinIce(inpath, outfilepath):   
     ''' 
-         Creates map showing percentage ice coverage over a given period
+         Creates maximum and minimum ice map, GeoTIFF and shapefile
+         maximum = at least one day ice at this pixel
+         minimum = every day ice at this pixel
+         In addition a file simply giving the number of days with ice
+         
+         The poly shapefile has all features as polygon, the line shapefile
+         only the max or min ice edge
     
     '''
     
@@ -174,9 +248,10 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
-    print ", number of days:  ", NumberOfDays
     
+    #Files are all the same properties, so take first one to get info
     firstfilename = filelist[0]
+    
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
@@ -184,14 +259,13 @@ def CreateMaxMinIce(inpath, outfilepath):
     outfile =  inpath + 'icechart_NumberOfDays.tif'   
     outfilemax = inpath + 'icechart_maximum.tif'
     outfilemin = inpath + 'icechart_minimum.tif'
+    
     outshape_polymax = inpath + 'icechart_poly_maximum.shp'
     outshape_polymin = inpath + 'icechart_poly_minimum.shp'
     outshape_linemax = inpath + 'icechart_line_maximum.shp'
     outshape_linemin = inpath + 'icechart_line_minimum.shp'
-    iceedge_linemax = inpath + 'iceedge_linemax.shp'
-    iceedge_tempmax = inpath + 'iceedge_tempmax.shp'
-    iceedge_linemin = inpath + 'iceedge_linemin.shp'
-    iceedge_tempmin = inpath + 'iceedge_tempmin.shp'
+    
+   
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
     if firstfilename is None:
@@ -206,16 +280,18 @@ def CreateMaxMinIce(inpath, outfilepath):
     if outraster is None: 
         print 'Could not create ', outfile
         return    
+    
     outrastermax = driver.Create(outfilemax, cols, rows, 1, gdal.GDT_Float64 )
     if outrastermax is None: 
         print 'Could not create ', outfilemax
         return
+    
     outrastermin = driver.Create(outfilemin, cols, rows, 1, gdal.GDT_Float64 )
     if outrastermin is None: 
         print 'Could not create ', outfilemin
         return
    
-   # Set Geotransform and projection for outraster
+    # Set Geotransform and projection for outraster
     outraster.SetGeoTransform(icechart.GetGeoTransform())
     outraster.SetProjection(icechart.GetProjection())
     outrastermax.SetGeoTransform(icechart.GetGeoTransform())
@@ -227,9 +303,11 @@ def CreateMaxMinIce(inpath, outfilepath):
     rows = outrastermax.RasterYSize
     cols = outrastermax.RasterXSize
     raster = numpy.zeros((rows, cols), numpy.float) 
+    
     outraster.GetRasterBand(1).WriteArray( raster )    
     outrastermax.GetRasterBand(1).WriteArray( raster )
     outrastermin.GetRasterBand(1).WriteArray( raster )
+    
     #Create output array and fill with zeros
     outarray = numpy.zeros((rows, cols), numpy.float)    
     outarraymax = numpy.zeros((rows, cols), numpy.float)
@@ -248,15 +326,6 @@ def CreateMaxMinIce(inpath, outfilepath):
             print 'Could not open ', infilename
             return
         
-        #get image size
-        rows = icechart.RasterYSize
-        cols = icechart.RasterXSize
-                
-        #get the bands 
-        outband = outraster.GetRasterBand(1)
-    
-
-        
         #Read input raster into array
         iceraster = icechart.ReadAsArray()
         
@@ -267,16 +336,17 @@ def CreateMaxMinIce(inpath, outfilepath):
         outarray = numpy.where( (iceraster ==   253), 253 , outarray)
         outarray = numpy.where( (iceraster ==   254), 254 , outarray)
         outarray = numpy.where( (iceraster ==   255), 255 , outarray)
-        
-
-       
+               
         #Clear iceraster for next loop -- just in case
         iceraster = None
     
-     #get the bands 
+    
+    #get the bands 
+    outband = outraster.GetRasterBand(1)    
     outbandmax = outrastermax.GetRasterBand(1)
     outbandmin = outrastermin.GetRasterBand(1)
 
+    #Calculate the maximum-map from the NumberOfDays outarray
     outarraymax = numpy.where( (outarray == 0), 0, 1 )
     outarraymax = numpy.where( (outarray ==   251), 251 , outarraymax)
     outarraymax = numpy.where( (outarray ==   252), 252 , outarraymax)
@@ -284,6 +354,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     outarraymax = numpy.where( (outarray ==   254), 254 , outarraymax)
     outarraymax = numpy.where( (outarray ==   255), 255 , outarraymax)
     
+    #Calculate the minimum-map from the NumberOfDays outarray
     outarraymin = numpy.where( (outarray == NumberOfDays), 1, 0 )
     outarraymin = numpy.where( (outarray ==   251), 251 , outarraymin)
     outarraymin = numpy.where( (outarray ==   252), 252 , outarraymin)
@@ -291,6 +362,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     outarraymin = numpy.where( (outarray ==   254), 254 , outarraymin)
     outarraymin = numpy.where( (outarray ==   255), 255 , outarraymin)
     
+    #Write all arrays to file
     outband.WriteArray(outarray)
     outband.FlushCache()    
     
@@ -299,6 +371,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     outbandmin.WriteArray(outarraymin)
     outbandmin.FlushCache()
+    
     #Clear arrays and close files
     outband = None
     outbandmax = None
@@ -310,28 +383,31 @@ def CreateMaxMinIce(inpath, outfilepath):
     outarray = None
     outarraymax = None
     outarraymin = None     
+    
+    ##### CONVERSION TO SHAPEFILE #######################    
     print '\n Convert ', outfilemax, ' to shapefile.'
     os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_polymax )  
     
     print '\n Convert ', outfilemin, ' to shapefile.'
     os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_polymin ) 
+    
     ### Create polyline showing ice edge
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
     os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax)
     os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin)
     
-    print 'Convert ice edge to Linestring -- Part 1'
-    os.system('ogr2ogr -where DN=0  -progress -clipsrc C:\Users\max\Documents\Icecharts\landmasks\iceshape_3575.shp '+  iceedge_tempmax + ' ' + outshape_linemax)
-    os.system('ogr2ogr -where DN=0  -progress -clipsrc C:\Users\max\Documents\Icecharts\landmasks\iceshape_3575.shp '+  iceedge_tempmin + ' ' + outshape_linemin)
-        
-    print 'Convert ice edge to Linestring -- Part 2'
-    os.system('ogr2ogr -progress -clipsrcwhere DN=1  -clipsrc ' + outshape_polymax + ' ' + iceedge_linemax + ' ' + iceedge_tempmax )
-    os.remove(iceedge_tempmax)
-    os.system('ogr2ogr -progress -clipsrcwhere DN=1  -clipsrc ' + outshape_polymin + ' ' + iceedge_linemin + ' ' + iceedge_tempmin )
-    os.remove(iceedge_tempmin)
-            
-    print 'Done Creating Percentage Map'        
+    #Reproject to EPSG:3575
+    ReprojectShapefile(outshape_polymax)
+    ReprojectShapefile(outshape_polymin)
+    ReprojectShapefile(outshape_linemax)
+    ReprojectShapefile(outshape_linemin)
+  
+    #reproject to EPSG3575
+    EPSG3411_2_EPSG3575(outfilemax)        
+    EPSG3411_2_EPSG3575(outfilemin) 
+    EPSG3411_2_EPSG3575(outfile) 
+    print 'Done Creating Max/Min Maps'        
     return outfilemax, outfilemin
     
      
