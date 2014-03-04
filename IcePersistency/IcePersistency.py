@@ -423,7 +423,26 @@ infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\20
 outfilepath = 'C:\\Users\\Max\\Desktop\\test\\'
 
 
-filelist = glob.glob(infilepath + 'nt_201202*.bin')
+#filelist = glob.glob(infilepath + 'nt_201202*.bin')
+
+#Get all files from given month
+startyear = 1990
+stopyear = 1993
+month = 2
+
+
+ 
+filelist = []
+for year in range(startyear, stopyear + 1):
+    foldername = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\' + str(year) + '\\'
+    if month < 10: 
+        file_searchstring = 'nt_' + str(year) + '0' + str(month) + '*.bin'
+    else:
+        file_searchstring = 'nt_' + str(year)  + str(month) + '*.bin'
+    
+    foldersearchstring = foldername + file_searchstring
+    filelist.extend(glob.glob(foldersearchstring))
+    print filelist
 
 for icechart in filelist:
     #Convert NSIDC files to GeoTiff
