@@ -140,7 +140,7 @@ def CreateIcePercistanceMap(inpath, outfilepath):
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
-    print ", number of days:  ", NumberOfDays
+    
     
     firstfilename = filelist[0]
     #Define file names 
@@ -262,13 +262,18 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     outshape_polymax = inpath + 'icechart_poly_maximum.shp'
     outshape_polymin = inpath + 'icechart_poly_minimum.shp'
-    outshape_polymax2 = inpath + 'icechart_poly_maximum2.shp'
-    outshape_polymin2 = inpath + 'icechart_poly_minimum2.shp'
     outshape_linemax = inpath + 'icechart_line_maximum.shp'
     outshape_linemin = inpath + 'icechart_line_minimum.shp'
     
+    #Temporary shapefile, all subfiles specified so that they can be removed later
     outshape_tempmax = inpath + 'icechart_tempmax.shp'
+    outshape_tempmax2 = inpath + 'icechart_tempmax.dbf'
+    outshape_tempmax3 = inpath + 'icechart_tempmax.prj'
+    outshape_tempmax4 = inpath + 'icechart_tempmax.shx'
     outshape_tempmin = inpath + 'icechart_tempmin.shp'
+    outshape_tempmin2 = inpath + 'icechart_tempmin.dbf'
+    outshape_tempmin3 = inpath + 'icechart_tempmin.prj'
+    outshape_tempmin4 = inpath + 'icechart_tempmin.shx'
    
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -390,25 +395,30 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     ##### CONVERSION TO SHAPEFILE #######################    
     print '\n Convert ', outfilemax, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_polymax + ' icechart_poly_maximum DN' )
-    #os.system('ogr2ogr ' + outshape_polymax + ' ' +  outshape_polymax + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM input"')
-    
+    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_tempmax )
     print '\n Convert ', outfilemin, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_polymin + ' icechart_poly_minimum DN' ) 
-    print "add area layer to polygon"
-    os.system('ogr2ogr '+ outshape_tempmax + ' ' + outshape_polymax + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM icechart_poly_maximum" ' )
-    os.system('ogr2ogr '+ outshape_tempmin + ' ' + outshape_polymin + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM icechart_poly_minimum" ')
-    #os.remove(outshape_polymax)
-    #os.remove(outshape_polymin)
-    print "select iceedge"
-    os.system('ogr2ogr -sql "SELECT * FROM icechart_tempmax WHERE DN=1 AND area > 10000000000000.0" ' +  outshape_polymax2 + ' ' + outshape_tempmax )
-    os.system('ogr2ogr -sql "SELECT * FROM icechart_tempmin WHERE DN=1 AND area > 10000000000000.0" ' +  outshape_polymin2 + ' ' + outshape_tempmin )
+    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_tempmin ) 
     
-    ### Create polyline showing ice edge
+    #Get the large polygon only, this removes mistaken areas at coast and noise. CHECK VALUE IF TOO BIG FOR SOME YEARS(?)
+    print "Select large polygon, ignoring the small ones"
+    os.system('ogr2ogr -progress '+ outshape_polymax + ' ' + outshape_tempmax + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 10000000000000.0"' )
+    os.system('ogr2ogr -progress '+ outshape_polymin + ' ' + outshape_tempmin + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmin WHERE DN=1 AND OGR_GEOM_AREA > 10000000000000.0" ')
+    
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax2)
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin2)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin)
+    
+    #Cleaning up temporary files 
+    os.remove(outshape_tempmax)
+    os.remove(outshape_tempmax2)
+    os.remove(outshape_tempmax3)
+    os.remove(outshape_tempmax4)
+    os.remove(outshape_tempmin)
+    os.remove(outshape_tempmin2)
+    os.remove(outshape_tempmin3)
+    os.remove(outshape_tempmin4)
+    
     
     #Reproject to EPSG:3575
     ReprojectShapefile(outshape_polymax)
@@ -420,6 +430,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     EPSG3411_2_EPSG3575(outfilemax)        
     EPSG3411_2_EPSG3575(outfilemin) 
     EPSG3411_2_EPSG3575(outfile) 
+    print    
     print 'Done Creating Max/Min Maps'        
     return outfilemax, outfilemin
     
@@ -439,8 +450,8 @@ outfilepath = 'C:\\Users\\Max\\Desktop\\test\\'
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
-startyear = 1994
-stopyear = 1995
+startyear = 1990
+stopyear = 2010
 month = 3
 
 
@@ -455,7 +466,7 @@ for year in range(startyear, stopyear + 1):
     
     foldersearchstring = foldername + file_searchstring
     filelist.extend(glob.glob(foldersearchstring))
-    print filelist
+    
 
 for icechart in filelist:
     #Convert NSIDC files to GeoTiff
@@ -466,3 +477,7 @@ for icechart in filelist:
 CreateIcePercistanceMap(outfilepath, outfilepath)
 
 max_ice, min_ice = CreateMaxMinIce(outfilepath, outfilepath)
+
+print 24*'#'
+print "Done creating Ice Persistance Map"
+print 24*'#'
