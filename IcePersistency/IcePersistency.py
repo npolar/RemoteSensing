@@ -454,7 +454,6 @@ startyear = 1990
 stopyear = 2010
 month = 3
 
-
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
 for year in range(startyear, stopyear + 1):
