@@ -49,7 +49,7 @@ def ReprojectShapefile(infile, inproj = "EPSG:3411", outproj = "EPSG:3575"):
     reprshapefile = reprshapepath + '\\'+ reprshapeshortname + extension
     
     #Reproject using ogr commandline
-    print 'Reproject Shapefile'    
+    print 'Reproject Shapefile ', infile    
     os.system('ogr2ogr -s_srs ' + inproj + ' -t_srs ' + outproj + ' '  + reprshapefile + ' ' + infile )
     print 'Done Reproject'
 
@@ -262,9 +262,13 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     outshape_polymax = inpath + 'icechart_poly_maximum.shp'
     outshape_polymin = inpath + 'icechart_poly_minimum.shp'
+    outshape_polymax2 = inpath + 'icechart_poly_maximum2.shp'
+    outshape_polymin2 = inpath + 'icechart_poly_minimum2.shp'
     outshape_linemax = inpath + 'icechart_line_maximum.shp'
     outshape_linemin = inpath + 'icechart_line_minimum.shp'
     
+    outshape_tempmax = inpath + 'icechart_tempmax.shp'
+    outshape_tempmin = inpath + 'icechart_tempmin.shp'
    
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -386,16 +390,25 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     ##### CONVERSION TO SHAPEFILE #######################    
     print '\n Convert ', outfilemax, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_polymax )  
+    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_polymax + ' icechart_poly_maximum DN' )
+    #os.system('ogr2ogr ' + outshape_polymax + ' ' +  outshape_polymax + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM input"')
     
     print '\n Convert ', outfilemin, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_polymin ) 
+    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_polymin + ' icechart_poly_minimum DN' ) 
+    print "add area layer to polygon"
+    os.system('ogr2ogr '+ outshape_tempmax + ' ' + outshape_polymax + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM icechart_poly_maximum" ' )
+    os.system('ogr2ogr '+ outshape_tempmin + ' ' + outshape_polymin + ' -sql "SELECT *, OGR_GEOM_AREA AS area FROM icechart_poly_minimum" ')
+    #os.remove(outshape_polymax)
+    #os.remove(outshape_polymin)
+    print "select iceedge"
+    os.system('ogr2ogr -sql "SELECT * FROM icechart_tempmax WHERE DN=1 AND area > 10000000000000.0" ' +  outshape_polymax2 + ' ' + outshape_tempmax )
+    os.system('ogr2ogr -sql "SELECT * FROM icechart_tempmin WHERE DN=1 AND area > 10000000000000.0" ' +  outshape_polymin2 + ' ' + outshape_tempmin )
     
     ### Create polyline showing ice edge
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax)
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax2)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin2)
     
     #Reproject to EPSG:3575
     ReprojectShapefile(outshape_polymax)
@@ -426,12 +439,12 @@ outfilepath = 'C:\\Users\\Max\\Desktop\\test\\'
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
-startyear = 1990
-stopyear = 1993
-month = 2
+startyear = 1994
+stopyear = 1995
+month = 3
 
 
- 
+#Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
 for year in range(startyear, stopyear + 1):
     foldername = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\' + str(year) + '\\'
