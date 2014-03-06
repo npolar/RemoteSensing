@@ -274,6 +274,15 @@ def CreateMaxMinIce(inpath, outfilepath):
     outshape_tempmin2 = inpath + 'icechart_tempmin.dbf'
     outshape_tempmin3 = inpath + 'icechart_tempmin.prj'
     outshape_tempmin4 = inpath + 'icechart_tempmin.shx'
+    
+    outshape_temp2max = inpath + 'icechart_temp2max.shp'
+    outshape_temp2max2 = inpath + 'icechart_temp2max.dbf'
+    outshape_temp2max3 = inpath + 'icechart_temp2max.prj'
+    outshape_temp2max4 = inpath + 'icechart_temp2max.shx'
+    outshape_temp2min = inpath + 'icechart_temp2min.shp'
+    outshape_temp2min2 = inpath + 'icechart_temp2min.dbf'
+    outshape_temp2min3 = inpath + 'icechart_temp2min.prj'
+    outshape_temp2min4 = inpath + 'icechart_temp2min.shx'
    
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -406,8 +415,19 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemax + ' ' + outshape_polymax)
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_linemin + ' ' + outshape_polymin)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2max + ' ' + outshape_polymax)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2min + ' ' + outshape_polymin)
+    
+    # Remove coast line from ice edge
+    # Prerequisite: Create NISDC coast line mask ( ogr2ogr -progress C:\Users\max\Desktop\NSIDC_oceanmask.shp C:\Users \max\Desktop\temp.shp
+    # -sql "SELECT *, OGR_GEOM_AREA FROM temp WHERE DN<250 )
+    # use "dissolve" to get ocean only with one value and the run buffer -5000m such that coast line does not match ice polygon
+    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemax + ' ' + outshape_temp2max)
+    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemin + ' ' + outshape_temp2min)
+    
+    
+        
+    
     
     #Cleaning up temporary files 
     os.remove(outshape_tempmax)
@@ -450,7 +470,7 @@ outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
 
 #Get all files from given month
 startyear = 1990
-stopyear = 2010
+stopyear = 1992
 month = 3 #Values 1 to 12
 
 #Create filelist including all files for the given month between startyear and stopyear inclusive
