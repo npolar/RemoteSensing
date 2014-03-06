@@ -52,13 +52,15 @@ def RadarsatDetailedQuicklook(radarsatfile):
     print "Decompressing image for " + infilename + " on " + infilepath    
     
     #Extract imagery file from zipfile
-    zfile.extractall(infilepath)
+    try:
+        zfile.extractall(infilepath)
+    except:
+        outputfilename = None
+        return outputfilename
     
     #Define names
-    #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
     gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
-    outputfilename = infilepath + '\\' + infileshortname + '\\' + infileshortname + '_EPSG3575.tif'
-    browseimage = infilepath + '\\' + infileshortname + '_EPSG3575.tif'
+    outputfilename = infilepath + '\\' + infileshortname + '_EPSG3575.tif'
     
     #Call gdalwarp
     print
@@ -67,19 +69,13 @@ def RadarsatDetailedQuicklook(radarsatfile):
     os.system('gdalwarp -tps  -t_srs \"+proj=laea +lat_0=90 +lon_0=10 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs\" ' + gdalsourcefile + ' ' + outputfilename )  
     
     
-    #Call gdaltranslate    
-    print
-    print "downsampling file"
-    print
-    os.system('gdal_translate -ot byte -outsize 8% 8% -scale 0 50000 0 255 ' + outputfilename + ' ' + browseimage )
-
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(infilepath + '\\' + infileshortname )
     
     #Close zipfile
     zfile.close()
     
-    return browseimage
+    return outputfilename
     
 def ExtractRadarsat(radarsatfile, location):
     '''
@@ -202,8 +198,16 @@ def ProcessNest(radarsatfile):
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.jpg'
         
-        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_40percent.jpg'
-        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_09percent.jpg'
+        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_40percent.jpg'
+        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_10percent.jpg'
+        jpegsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_20percent.jpg'
+        jpegsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_30percent.jpg'
+        jpegsmallfile5 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_50percent.jpg'
+        
+        tiffsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_40percent.tif'
+        tiffsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_10percent.tif'
+        tiffsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_20percent.tif'
+        tiffsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_30percent.tif'
         
         print
         print 'Converting: '
@@ -220,11 +224,19 @@ def ProcessNest(radarsatfile):
         #Convert to JPG
         os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
-        #Create small jpeg
-        os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
-        os.system("gdal_translate -outsize 09% 09% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
+        #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
+        #os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        #os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
+        #os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
+        #os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
+        #os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
         
-        
+        #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
+        #os.system("gdal_translate -ot Int16 -co COMPRESS=DEFLATE -co PREDICTOR=2 -co ZLEVEL=9 -outsize 40% 40% -of GTiff " + destinationfile2 + " " + tiffsmallfile)
+        #os.system("gdal_translate -outsize 10% 10%  -of GTiff " + destinationfile2 + " " + tiffsmallfile2)
+        #os.system("gdal_translate -outsize 20% 20%  -of GTiff " + destinationfile2 + " " + tiffsmallfile3)
+        #os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
+    
         #Remove original GeoTIFF in 3033 since we now have 3575        
         os.remove(destinationfile)
         #os.remove(auxfile)
@@ -243,7 +255,7 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'G:\satellittdata\flerbrukBarents\*.zip')
+filelist = glob.glob(r'G:\satellittdata\flerbrukBarents\RS2*.zip')
 
 #Define Area Of Interest
 upperleft_x = 8000.0

@@ -443,16 +443,15 @@ def CreateMaxMinIce(inpath, outfilepath):
 ##############################################################################
 
 
-infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\2012\\'
-outfilepath = 'C:\\Users\\Max\\Desktop\\test\\'
-
+#infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\2012\\'
+outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
 
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
 startyear = 1990
 stopyear = 2010
-month = 3
+month = 3 #Values 1 to 12
 
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
