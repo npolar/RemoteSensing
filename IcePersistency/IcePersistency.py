@@ -349,36 +349,44 @@ def CreateMaxMinIce(inpath, outfilepath):
         
         #Array calculation with numpy -- much faster
         outarray = numpy.where( (iceraster >=  38), outarray + 1 , outarray)
-        outarray = numpy.where( (iceraster ==   251), 251 , outarray)
-        outarray = numpy.where( (iceraster ==   252), 252 , outarray)
-        outarray = numpy.where( (iceraster ==   253), 253 , outarray)
-        outarray = numpy.where( (iceraster ==   254), 254 , outarray)
-        outarray = numpy.where( (iceraster ==   255), 255 , outarray)
-               
+                       
         #Clear iceraster for next loop -- just in case
         iceraster = None
     
     
+    
+    
+    #outarray contains now NumberOfDay with ice -- burn in landmask
+    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landraster = landmask.ReadAsArray()
+    outarray = numpy.where( (landraster == 251), 251, outarray)
+    outarray = numpy.where( (landraster == 252), 252, outarray)
+    outarray = numpy.where( (landraster == 253), 253, outarray)
+    outarray = numpy.where( (landraster == 254), 254, outarray)
+    outarray = numpy.where( (landraster == 255), 255, outarray)
+
+    #Calculate the maximum-map from the NumberOfDays outarray
+    #Using landraster again -- otherwise if NumberOfDay mask by chance 252, it is masked out
+    outarraymax = numpy.where( (outarray == 0), 0, 1 )
+    outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   255), 255 , outarraymax)
+    
+    #Calculate the minimum-map from the NumberOfDays outarray
+    outarraymin = numpy.where( (outarray == NumberOfDays), 1, 0 )
+    outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   253), 253 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   254), 254 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
+    
+        
     #get the bands 
     outband = outraster.GetRasterBand(1)    
     outbandmax = outrastermax.GetRasterBand(1)
     outbandmin = outrastermin.GetRasterBand(1)
-
-    #Calculate the maximum-map from the NumberOfDays outarray
-    outarraymax = numpy.where( (outarray == 0), 0, 1 )
-    outarraymax = numpy.where( (outarray ==   251), 251 , outarraymax)
-    outarraymax = numpy.where( (outarray ==   252), 252 , outarraymax)
-    outarraymax = numpy.where( (outarray ==   253), 253 , outarraymax)
-    outarraymax = numpy.where( (outarray ==   254), 254 , outarraymax)
-    outarraymax = numpy.where( (outarray ==   255), 255 , outarraymax)
-    
-    #Calculate the minimum-map from the NumberOfDays outarray
-    outarraymin = numpy.where( (outarray == NumberOfDays), 1, 0 )
-    outarraymin = numpy.where( (outarray ==   251), 251 , outarraymin)
-    outarraymin = numpy.where( (outarray ==   252), 252 , outarraymin)
-    outarraymin = numpy.where( (outarray ==   253), 253 , outarraymin)
-    outarraymin = numpy.where( (outarray ==   254), 254 , outarraymin)
-    outarraymin = numpy.where( (outarray ==   255), 255 , outarraymin)
     
     #Write all arrays to file
     outband.WriteArray(outarray)
@@ -400,7 +408,9 @@ def CreateMaxMinIce(inpath, outfilepath):
     outrastermin = None
     outarray = None
     outarraymax = None
-    outarraymin = None     
+    outarraymin = None   
+    landraster = None   
+    landmask = None     
     
     ##### CONVERSION TO SHAPEFILE #######################    
     print '\n Convert ', outfilemax, ' to shapefile.'
@@ -425,10 +435,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemax + ' ' + outshape_temp2max)
     os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemin + ' ' + outshape_temp2min)
     
-    
-        
-    
-    
+       
     #Cleaning up temporary files 
     os.remove(outshape_tempmax)
     os.remove(outshape_tempmax2)
@@ -438,6 +445,14 @@ def CreateMaxMinIce(inpath, outfilepath):
     os.remove(outshape_tempmin2)
     os.remove(outshape_tempmin3)
     os.remove(outshape_tempmin4)
+    os.remove(outshape_temp2max)
+    os.remove(outshape_temp2max2)
+    os.remove(outshape_temp2max3)
+    os.remove(outshape_temp2max4)
+    os.remove(outshape_temp2min)
+    os.remove(outshape_temp2min2)
+    os.remove(outshape_temp2min3)
+    os.remove(outshape_temp2min4)
     
     
     #Reproject to EPSG:3575
@@ -469,9 +484,9 @@ outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
-startyear = 1990
-stopyear = 1992
-month = 3 #Values 1 to 12
+startyear = 1980
+stopyear = 2010
+month = 4 #Values 1 to 12
 
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
