@@ -23,7 +23,7 @@ Parameters are set in Core of the Program, see below all functions
 @author: max
 """
 # Import Modules
-import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil, fnmatch
+import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil, fnmatch, subprocess
 
 
 
@@ -31,7 +31,39 @@ import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil, fnmatc
 #  Defining Functions
 ##############################################################################
 
-def ReprojectShapefile(infile, inproj, outproj):
+def CreateFilelist(startyear, startday, startmonth, endyear, endday, endmonth, infilepath):
+    '''
+        Creates filelist for icechartnames including date
+    '''
+    
+    
+    #http://pymotw.com/2/datetime/
+    #http://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
+    d1 =  datetime.date(startyear, startmonth, startday)
+    d2 =  datetime.date(endyear, endmonth, endday)
+    diff = datetime.timedelta(days=1)
+    
+    #date3 is working date to be looped through  -- set to start date   
+    d3 = d1
+
+    print 'Create Filelist in ', infilepath
+    
+    
+    filelist = []
+    
+    while d3 != d2:
+        checkfile = infilepath + "ice" + d3.strftime('%Y%m%d') +  '.shp'
+        print checkfile        
+        #If file exists add to list (weekends do not exist)        
+        if os.path.isfile(checkfile): 
+            filelist.append(checkfile)
+            
+        d3 = (d3 + diff)    
+    
+    return filelist
+
+
+def ReprojectShapefile(infile, outfilepath, inproj, outproj):
     '''
     Reprojects the shapefile given in infile
     
@@ -45,9 +77,9 @@ def ReprojectShapefile(infile, inproj, outproj):
     (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
     
-    reprshapepath = infilepath + '\\' + outproj[0:4] + outproj[5:9]
+    
     reprshapeshortname = infileshortname + '_' + outproj[0:4] + outproj[5:9]
-    reprshapefile = reprshapepath + '\\'+ reprshapeshortname + extension
+    reprshapefile = outfilepath + '\\'+ reprshapeshortname + extension
     
     #Reproject using ogr commandline
     print 'Reproject Shapefile'    
@@ -73,8 +105,8 @@ def Shape2Raster(shapefile, rasterresolution, location):
     (shapefileshortname, extension) = os.path.splitext(shapefilename)           #get file name without extension
     
     # The land area to be masked out, also being a shapefile to be rasterized
-    SvalbardCoast = 'C:\Users\max\Documents\Icecharts\landmasks\s100-landp_3575.shp'
-    MainlandCoast = 'C:\Users\max\Documents\Icecharts\landmasks\ArcticSeaNoSval_3575.shp'
+    SvalbardCoast = 'I:\Icecharts\landmasks\s100-landp_3575.shp'
+    MainlandCoast = 'I:\Icecharts\landmasks\ArcticSeaNoSval_3575.shp'
     
     print "\n \n Rasterizing", shapefilename, '\n'
     
@@ -122,34 +154,40 @@ def Shape2Raster(shapefile, rasterresolution, location):
     outfile.GetRasterBand(1).WriteArray( raster )
     outfile = None
     
+    
     # Rasterize first Ice Type and at same time create file -- call gdal_rasterize commandline
+    # Check if gdal_rasterize has crashed, which it does if there is a corrupt shapefile
     print '\n Open Water'
-    #os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -burn 2 -l ' + shapefileshortname +' -tr 1000 -1000 ' +  shapefile + ' ' + outraster)
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -b 1 -burn 5 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
-        
+    command_run = subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -b 1 -burn 5 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)    
+    #THIS WAS MEANT TO CATCH CRASH OF gdal_rasterize, but when no Open Water, all the rest is skipped!    
+    #if command_run != 0:            
+    #    print 'corrupt shapefile skipped'
+    #    return
+    
     # Rasterize the other Ice types, adding them to the already created file
     print '\nVery Open Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Open Drift Ice\'\" -b 1 -burn 25 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Open Drift Ice\'\" -b 1 -burn 25 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Open Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Drift Ice\'\" -b 1 -burn 55 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Drift Ice\'\" -b 1 -burn 55 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Close Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Close Drift Ice\'\" -b 1 -burn 80 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Close Drift Ice\'\" -b 1 -burn 80 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Very Close Drift Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Close Drift Ice\'\" -b 1 -burn 95 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Very Close Drift Ice\'\" -b 1 -burn 95 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
     
     print '\n Fast Ice'
-    os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Fast Ice\'\" -b 1 -burn 100 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+    subprocess.call('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Fast Ice\'\" -b 1 -burn 100 -l ' + shapefileshortname +' ' +  shapefile + ' ' + outraster)
+
     
     # Rasterize Spitsbergen land area on top
     print '\n SvalbardRaster'
-    os.system('gdal_rasterize  -b 1 -burn 999 -l s100-landp_3575 '  +  SvalbardCoast + ' ' + outraster)
+    subprocess.call('gdal_rasterize  -b 1 -burn 999 -l s100-landp_3575 '  +  SvalbardCoast + ' ' + outraster)
     
      # Rasterize Greenland and other land area on top
     print '\n MainlandRaster'
-    os.system('gdal_rasterize  -b 1 -burn 999 -l ArcticSeaNoSval_3575 '  +  MainlandCoast + ' ' + outraster)
+    subprocess.call('gdal_rasterize  -b 1 -burn 999 -l ArcticSeaNoSval_3575 '  +  MainlandCoast + ' ' + outraster)
     
     
     print "\n \n Done rasterizing", shapefilename, '\n'
@@ -254,8 +292,9 @@ def CreateMapFastIceDays(inpath, outfilepath):
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
+    
         
-    outfile = inpath + 'icechart_fasticedays.tif'
+    outfile = outfilepath[0:-9] + 'icechart_fasticedays_' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
     
     ##### Create copy of original Tiff which then receives the processed map #####    
     #open the IceChart
@@ -347,7 +386,7 @@ def CreatePercentageMap(inpath, outfilepath):
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
         
-    outfile = inpath + 'icechart_precentagemap.tif'
+    outfile = outfilepath[0:-9] + 'icechart_precentagemap' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
     
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -460,11 +499,11 @@ def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
     
     '''
    
-    outfile = inpath + 'iceedge_map.tif'
-    outshape_poly = inpath + 'iceedge_map_poly.shp'
-    outshape_line = inpath + 'iceedge_map_line.shp'
-    iceedge_line = inpath + 'iceedge_line.shp'
-    iceedge_temp = inpath + 'iceedge_temp.shp'
+    outfile = outfilepath[0:-9] + 'iceedge_map.tif'
+    outshape_poly = outfilepath[0:-9] + 'iceedge_map_poly.shp'
+    outshape_line = outfilepath[0:-9] + 'iceedge_map_line.shp'
+    iceedge_line = outfilepath[0:-9] + 'iceedge_line.shp'
+    iceedge_temp = outfilepath[0:-9] + 'iceedge_temp.shp'
     
     #Open Rasterfile and Mask
     driver = gdal.GetDriverByName('GTiff')
@@ -535,7 +574,7 @@ def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
     os.system('ogr2ogr -progress -nlt LINESTRING ' + outshape_line + ' ' + outshape_poly)
     
     print 'Convert ice edge to Linestring -- Part 1'
-    os.system('ogr2ogr -where DN=0  -progress -clipsrc C:\Users\max\Documents\Icecharts\landmasks\iceshape_3575.shp '+  iceedge_temp + ' ' + outshape_line)
+    os.system('ogr2ogr -where DN=0  -progress -clipsrc I:\Icecharts\landmasks\iceshape_3575.shp '+  iceedge_temp + ' ' + outshape_line)
     print 'Convert ice edge to Linestring -- Part 2'
     os.system('ogr2ogr -progress -clipsrcwhere DN=30  -clipsrc ' + outshape_poly + ' ' + iceedge_line + ' ' + iceedge_temp )
     os.remove(iceedge_temp)
@@ -560,7 +599,7 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
         
-    outfile = inpath + 'icechart_consecutive_fasticedays.tif'
+    outfile = outfilepath[0:-9] + 'icechart_consecutive_fasticedays' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
     
     ##### Create copy of original Tiff which then receives the processed map #####    
     #open the IceChart
@@ -658,73 +697,95 @@ print "*"*31
 print "Running IceChartProcessing"
 print "*"*31
 print
+startyear = 2003
+endyear = 2013
 
+#FOR EVERY YEAR ONLY THE FOLLOWING MONTH
+startday = 20
+startmonth = 2
 
-# Path where shapefiles are located and output files to be stored
-infilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\'
-outfilepath = 'C:\\Users\\max\\Documents\\Icecharts\\Data\\EPSG3575\\'
+endday = 30
+endmonth = 4
 
-
-
-#################### ADJUST ALL PARAMETERS HERE ##############################  
-#Define parameters
-inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
-outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
-
-#rasterresolution = 100.0   #Svalbard
-rasterresolution = 500.0
- 
-#All the Arctic Ocean
-x_origin = -3121844.7112938007
-y_origin = 482494.5951363358
-x_lowright = 2361155.2887061993
-y_lowright = -3396505.404863664
-
-#Svalbard Subset -- Activate if only Svalbard is to be rasterized
-#x_origin = -90000.0  
-#y_origin = -962000.0
-#x_lowright = 505000.0
-#y_lowright = -1590000.0
-
-location = [x_origin, y_origin, x_lowright, y_lowright]
-
-###  landmask path located in Shape2Raster but should remain fixed ###
-
-################### END ADJUST PARAMETERS ####################################
-
-
-
-# Iterate through all shapefiles
-filelist = glob.glob(infilepath + '*.shp')
-
-for icechart in filelist:
+year = startyear
+while year <= endyear:
+    # Path where shapefiles are located and output files to be stored
     
-    #Reproject Shapefile
-    reprshapefile = ReprojectShapefile(icechart, inproj, outproj)
+    infilepath = 'I:\\IceCharts\\isdata\\' + str(year) + '\\Barents_shp\\'
+    #outfilepath = 'I:\\IceCharts\\isdata\\' + str(year) + '\\EPSG3575\\'
+    #infilepath = 'G:\\IceCharts\\Data\\'
+    #outfilepath = 'G:\\Icecharts\\Data\\EPSG3575\\'
+    #outfilepath = 'I:\\IceCharts\\Isfjorden\\' + str(year) + '\\EPSG3575\\'
+    outfilepath = 'I:\\IceCharts\\Kit\\' + str(year) + '\\EPSG3575\\'
+    #outfilepath = 'I:\\IceCharts\\Kit\\'
     
-    #Convert Shapefile to Raster
-    Shape2Raster(reprshapefile, rasterresolution, location)
     
-    #set shapefile to None so that it stays None in case reprojection fails.
-    reprshapefile = None
-
-#Add Missing Days (like weekends or faulty shapefile)
-AddMissingDays(outfilepath)
-
-#Creates map with number of days of fast ice per pixel
-CreateMapFastIceDays(infilepath, outfilepath)
-
-#Create Consecutive Fasticedays
-consecutivenumber = 10
-CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber)
-
-#Creates map showing percentage of sea ice per pixel
-outputfile = CreatePercentageMap(infilepath, outfilepath)
-
-#Creates ice edge map
-percentage = 30  #Set percentage for ice edge map
-CreateIceEdgeMap(infilepath, outfilepath, outputfile, percentage)
-
+    
+    #################### ADJUST ALL PARAMETERS HERE ##############################  
+    #Define parameters
+    inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
+    outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
+    
+    rasterresolution = 200.0   #Svalbard
+    #rasterresolution = 1000.0   #All Arctic
+    
+    ### SUBSET COORDINATES IN EPSG3575
+    #All the Arctic Ocean
+    #x_origin = -3121844.7112938007
+    #y_origin = 482494.5951363358
+    #x_lowright = 2361155.2887061993
+    #y_lowright = -3396505.404863664
+    
+    #Svalbard Subset -- Activate if only Svalbard is to be rasterized
+    x_origin = -90000.0  
+    y_origin = -962000.0
+    x_lowright = 505000.0
+    y_lowright = -1590000.0
+    
+    #Isfjorden Subset
+    #x_origin = 83000.0
+    #y_origin = -1237947.0
+    #x_lowright = 166247.0
+    #y_lowright = -1338160.0
+    
+    location = [x_origin, y_origin, x_lowright, y_lowright]
+    
+    ###  landmask path located in Shape2Raster but should remain fixed ###
+    
+    ################### END ADJUST PARAMETERS ####################################
+    
+    
+    filelist = CreateFilelist(year, startday, startmonth, year, endday, endmonth, infilepath)
+   
+    
+    for icechart in filelist:
+        
+        #Reproject Shapefile
+        reprshapefile = ReprojectShapefile(icechart, outfilepath, inproj, outproj)
+        
+        #Convert Shapefile to Raster
+        Shape2Raster(reprshapefile, rasterresolution, location)
+        
+        #set shapefile to None so that it stays None in case reprojection fails.
+        reprshapefile = None
+    
+    #Add Missing Days (like weekends or faulty shapefile)
+    AddMissingDays(outfilepath)
+    
+    #Creates map with number of days of fast ice per pixel
+    CreateMapFastIceDays(infilepath, outfilepath)
+    
+    #Create Consecutive Fasticedays
+    consecutivenumber = 14
+    CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber)
+    
+    #Creates map showing percentage of sea ice per pixel
+    outputfile = CreatePercentageMap(infilepath, outfilepath)
+    
+    #Creates ice edge map
+    percentage = 30  #Set percentage for ice edge map
+    #CreateIceEdgeMap(infilepath, outfilepath, outputfile, percentage)
+    year = year +1
 
 
 print
