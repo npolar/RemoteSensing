@@ -136,7 +136,7 @@ def CreateIcePercistanceMap(inpath, outfilepath):
     gdal.AllRegister()
     
     # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + '*.tif')
+    filelist = glob.glob(outfilepath + 'nt*.tif')
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
@@ -147,7 +147,7 @@ def CreateIcePercistanceMap(inpath, outfilepath):
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
         
-    outfile = inpath + 'icechart_persistencemap.tif'
+    outfile = inpath + 'icechart_persistencemap' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
     
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -244,7 +244,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     gdal.AllRegister()
     
     # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + '*.tif')
+    filelist = glob.glob(outfilepath + 'nt*.tif')
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
@@ -256,14 +256,14 @@ def CreateMaxMinIce(inpath, outfilepath):
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
     
-    outfile =  inpath + 'icechart_NumberOfDays.tif'   
-    outfilemax = inpath + 'icechart_maximum.tif'
-    outfilemin = inpath + 'icechart_minimum.tif'
+    outfile =  inpath + 'icechart_NumberOfDays' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
+    outfilemax = inpath + 'icechart_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
+    outfilemin = inpath + 'icechart_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
     
-    outshape_polymax = inpath + 'icechart_poly_maximum.shp'
-    outshape_polymin = inpath + 'icechart_poly_minimum.shp'
-    outshape_linemax = inpath + 'icechart_line_maximum.shp'
-    outshape_linemin = inpath + 'icechart_line_minimum.shp'
+    outshape_polymax = inpath + 'icechart_poly_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
+    outshape_polymin = inpath + 'icechart_poly_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
+    outshape_linemax = inpath + 'icechart_line_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
+    outshape_linemin = inpath + 'icechart_line_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
     
     #Temporary shapefile, all subfiles specified so that they can be removed later
     outshape_tempmax = inpath + 'icechart_tempmax.shp'
@@ -486,7 +486,7 @@ outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
 #Get all files from given month
 startyear = 1980
 stopyear = 2010
-month = 4 #Values 1 to 12
+month = 2 #Values 1 to 12
 
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
