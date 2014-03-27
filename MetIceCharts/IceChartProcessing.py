@@ -31,7 +31,7 @@ import ogr, osr, os, sys, glob, numpy, gdal, gdalconst, datetime, shutil, fnmatc
 #  Defining Functions
 ##############################################################################
 
-def CreateFilelist(startyear, startday, startmonth, endyear, endday, endmonth, infilepath):
+def CreateFilelistSHP(startyear, startday, startmonth, endyear, endday, endmonth, infilepath):
     '''
         Creates filelist for icechartnames including date
     '''
@@ -51,18 +51,48 @@ def CreateFilelist(startyear, startday, startmonth, endyear, endday, endmonth, i
     
     filelist = []
     
-    while d3 != d2:
+    while d3 != (d2 + diff):
         checkfile = infilepath + "ice" + d3.strftime('%Y%m%d') +  '.shp'
         print checkfile        
         #If file exists add to list (weekends do not exist)        
         if os.path.isfile(checkfile): 
             filelist.append(checkfile)
             
+            
         d3 = (d3 + diff)    
     
     return filelist
 
-
+def CreateFilelistTIFF(startyear, startday, startmonth, endyear, endday, endmonth, infilepath):
+    '''
+        Creates filelist for icechartnames including date
+    '''
+    
+    
+    #http://pymotw.com/2/datetime/
+    #http://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
+    d1 =  datetime.date(startyear, startmonth, startday)
+    d2 =  datetime.date(endyear, endmonth, endday)
+    diff = datetime.timedelta(days=1)
+    
+    #date3 is working date to be looped through  -- set to start date   
+    d3 = d1
+    
+    print 'Create Filelist in ', infilepath
+    
+    
+    filelist = []
+    
+    while d3 != (d2 + diff):
+        checkfile = infilepath + "ice" + d3.strftime('%Y%m%d') +  '_EPSG3575.tif'
+        print checkfile        
+        #If file exists add to list (weekends do not exist)        
+        if os.path.isfile(checkfile): 
+            filelist.append(checkfile)
+            print 'appending ', checkfile
+        d3 = (d3 + diff)    
+    
+    return filelist
 def ReprojectShapefile(infile, outfilepath, inproj, outproj):
     '''
     Reprojects the shapefile given in infile
@@ -193,7 +223,7 @@ def Shape2Raster(shapefile, rasterresolution, location):
     print "\n \n Done rasterizing", shapefilename, '\n'
     
 
-def AddMissingDays(outfilepath):
+def AddMissingDays(outfilepath, filelist):
     '''
     if file is missing, replace by previous one
     
@@ -203,7 +233,7 @@ def AddMissingDays(outfilepath):
     gdal.AllRegister()    
     
     # Create a list of all available raster icechart files
-    filelist = sorted(glob.glob(outfilepath + "\\*.tif"))
+    #filelist = sorted(glob.glob(outfilepath + "\\*.tif"))
     
     #Get first dates filename -- backwards works when name ice20120131_EPSG3575.tif
     date1 = int(filelist[0][-21:-13])
@@ -229,11 +259,11 @@ def AddMissingDays(outfilepath):
 
     print 'Search for missing files and replace with precious ones'
     
-    while date3 != date2:
+    while d3 != (d2 + diff):
         
         #Create filename whose existence is to be checked
         checkfilename = outfilepath + "ice" + d3.strftime('%Y%m%d') +  filelist[1][-13:]
-                
+        print 'checking ', checkfilename, d3, (d2 + diff)       
         if (checkfilename in filelist) is False:
             
             #Create filename previous day
@@ -276,7 +306,7 @@ def AddMissingDays(outfilepath):
     print "Done replacing missing dates"    
     
     
-def CreateMapFastIceDays(inpath, outfilepath):
+def CreateMapFastIceDays(inpath, outfilepath, filelist):
     '''
     Creates Map where number indicates days with fast ice, 999 is land
     not considering if days are consecutive
@@ -286,15 +316,16 @@ def CreateMapFastIceDays(inpath, outfilepath):
     gdal.AllRegister()
     
     # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + '*.tif')
+    #filelist = glob.glob(outfilepath + '*.tif')
     
     firstfilename = filelist[0]
+    
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
-    
+    firstfilename = outfilepath + infileshortname + '.tif'
         
-    outfile = outfilepath[0:-9] + 'icechart_fasticedays_' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
+    outfile = outfilepath[0:-9] + 'icechart_fasticedays_' + filelist[0][-21:-15]  + '_' + filelist[-1][-21:-15]  + '.tif'
     
     ##### Create copy of original Tiff which then receives the processed map #####    
     #open the IceChart
@@ -328,6 +359,8 @@ def CreateMapFastIceDays(inpath, outfilepath):
     for infile in filelist:
         
         (infilepath, infilename) = os.path.split(infile)
+        (infileshortname, extension) = os.path.splitext(infilename)
+        infile = outfilepath+ infileshortname + '.tif'
         print 'Processing ', infilename
         
         #open the IceChart
@@ -350,6 +383,7 @@ def CreateMapFastIceDays(inpath, outfilepath):
         
         #Count pixel, if fastice add one, of not keep value -- add land mask
         outarray = numpy.where( (iceraster == 100), outarray + 1 , outarray)
+        #outarray = numpy.where( (iceraster >= 80), outarray + 1 , outarray)
         outarray = numpy.where( (iceraster == 999), 999 , outarray)
 
     #Write to file     
@@ -365,7 +399,7 @@ def CreateMapFastIceDays(inpath, outfilepath):
     print 'Done creating map of fastice-days'
         
 
-def CreatePercentageMap(inpath, outfilepath):
+def CreatePercentageMap(inpath, outfilepath, filelist):
     '''
     Creates map showing percentage ice coverage over a given period
     
@@ -375,18 +409,19 @@ def CreatePercentageMap(inpath, outfilepath):
     gdal.AllRegister()
     
     # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + '*.tif')
+    #filelist = glob.glob(outfilepath + '*.tif')
     
     #Determine Number of Days from available ice chart files
     NumberOfDays = len(filelist)
     print ", number of days:  ", NumberOfDays
     
     firstfilename = filelist[0]
+    
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
-        
-    outfile = outfilepath[0:-9] + 'icechart_precentagemap' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
+    firstfilename = outfilepath + infileshortname + '.tif'   
+    outfile = outfilepath[0:-9] + 'icechart_precentagemap' + filelist[0][-21:-15]  + '_' + filelist[-1][-21:-15]  + '.tif'
     
     #open the IceChart
     icechart = gdal.Open(firstfilename, gdalconst.GA_ReadOnly)
@@ -419,6 +454,8 @@ def CreatePercentageMap(inpath, outfilepath):
     for infile in filelist:
         
         (infilepath, infilename) = os.path.split(infile)
+        (infileshortname, extension) = os.path.splitext(infilename)
+        infile = outfilepath + infileshortname + '.tif'
         print 'Processing ', infilename
         
         #open the IceChart
@@ -582,7 +619,7 @@ def CreateIceEdgeMap(inpath, outfilepath, percentagemap, percentage):
     print 'Done Creating Ice Edge Map'      
 
 
-def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
+def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber, filelist):
     '''
     Creates Map where number indicates days with fast ice, 999 is land
     considering if days are consecutive
@@ -592,13 +629,14 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
     gdal.AllRegister()
     
     # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + '*.tif')
+    #filelist = glob.glob(outfilepath + '*.tif')
     
     firstfilename = filelist[0]
+    
     #Define file names 
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
-        
+    firstfilename = outfilepath + infileshortname + '.tif'    
     outfile = outfilepath[0:-9] + 'icechart_consecutive_fasticedays' + filelist[0][-21:-15] + '_' + filelist[-1][-21:-15] + '.tif'
     
     ##### Create copy of original Tiff which then receives the processed map #####    
@@ -636,6 +674,8 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
     for infile in filelist:
         
         (infilepath, infilename) = os.path.split(infile)
+        (infileshortname, extension) = os.path.splitext(infilename)
+        infile = outfilepath + infileshortname + '.tif'
         print 'Processing ', infilename
         
         #open the IceChart
@@ -658,7 +698,9 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
         
         #Add one where fast ice otherwise keep number, count in countingraster
         outarray = numpy.where( (iceraster == 100), outarray + 1 , outarray)
+        #outarray = numpy.where( (iceraster >=80), outarray + 1 , outarray)
         countingraster = numpy.where( (iceraster == 100), countingraster + 1 , countingraster)
+        #countingraster = numpy.where( (iceraster >=80), countingraster + 1 , countingraster)
         
         #Reset pixel to zero when previous day was not fast ice AND if less than wanted number (otherwise pixel is valid)
         outarray = numpy.where( (numpy.logical_and((previousraster == 0) , (countingraster < consecutivenumber))), 0 , outarray)
@@ -670,6 +712,7 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
                
         #New previousraster
         previousraster = numpy.where( (iceraster == 100), 1 , 0)
+        #previousraster = numpy.where( (iceraster >= 80), 1 , 0)
         
     
     #Has to finish after last run checking last image
@@ -688,6 +731,55 @@ def CreateMapConsecutiveFastIceDays(inpath, outfilepath, consecutivenumber):
     outraster = None
     outarray = None
     print 'Done creating map of consecutive fastice-days'    
+    
+    
+def MaskArea(shapefile):
+    
+    #
+    #Get Path and Name of Inputfile
+    (shapefilefilepath, shapefilename) = os.path.split(shapefile)             #get path and filename seperately
+    (shapefileshortname, extension) = os.path.splitext(shapefilename) 
+    # The raster file to be created and receive the rasterized shapefile
+    inputrastername = shapefileshortname + '.tif'
+    inputraster = shapefilefilepath + '\\' + inputrastername
+    print inputraster
+    #maskfile = 'I:\\IceCharts\\Kit\\VestSpitsbergen\\masklayer.tif'
+    maskfile = 'I:\\IceCharts\\Isfjorden\\isfjordenmask.tif'
+    
+    # register all of the GDAL drivers
+    gdal.AllRegister()
+    
+    # open the image
+    icechart = gdal.Open(inputraster, gdalconst.GA_Update)
+    if icechart is None:
+        print 'Could not open ', infileshortname
+        sys.exit(1)
+    
+    #Read input raster into array
+    iceraster = icechart.ReadAsArray()
+    
+    # open the image
+    mask = gdal.Open(maskfile, gdalconst.GA_ReadOnly)
+    if mask is None:
+        print 'Could not open ', maskfile
+        sys.exit(1)
+    
+    #Read input raster into array
+    maskraster = mask.ReadAsArray()
+    
+    iceraster = numpy.where( (maskraster == 0) , iceraster, 999)
+    
+    iceband = icechart.GetRasterBand(1)
+    iceband.WriteArray(iceraster)
+    iceband.FlushCache()
+    
+    iceband = None
+    iceraster = None
+    icechart = None
+    mask = None
+    maskraster = None
+    
+    
 ##############################################################################
 #  Core of program follows here
 ##############################################################################
@@ -697,15 +789,15 @@ print "*"*31
 print "Running IceChartProcessing"
 print "*"*31
 print
-startyear = 2003
-endyear = 2013
+startyear = 1998
+endyear = 2014
 
 #FOR EVERY YEAR ONLY THE FOLLOWING MONTH
-startday = 20
-startmonth = 2
+startday = 1
+startmonth = 1
 
-endday = 30
-endmonth = 4
+endday = 31
+endmonth = 1
 
 year = startyear
 while year <= endyear:
@@ -716,7 +808,7 @@ while year <= endyear:
     #infilepath = 'G:\\IceCharts\\Data\\'
     #outfilepath = 'G:\\Icecharts\\Data\\EPSG3575\\'
     #outfilepath = 'I:\\IceCharts\\Isfjorden\\' + str(year) + '\\EPSG3575\\'
-    outfilepath = 'I:\\IceCharts\\Kit\\' + str(year) + '\\EPSG3575\\'
+    outfilepath = 'I:\\IceCharts\\Isfjorden\\' + str(year) + '\\EPSG3575\\'
     #outfilepath = 'I:\\IceCharts\\Kit\\'
     
     
@@ -726,7 +818,7 @@ while year <= endyear:
     inproj = "EPSG:4326"  #EPSG:4326 is map projection of met.no shapefiles
     outproj = "EPSG:3575" #EPSG:3575 for Arctic Ocean, EPSG:32633 for Svalbard
     
-    rasterresolution = 200.0   #Svalbard
+    rasterresolution = 100.0   #Svalbard
     #rasterresolution = 1000.0   #All Arctic
     
     ### SUBSET COORDINATES IN EPSG3575
@@ -737,16 +829,22 @@ while year <= endyear:
     #y_lowright = -3396505.404863664
     
     #Svalbard Subset -- Activate if only Svalbard is to be rasterized
-    x_origin = -90000.0  
-    y_origin = -962000.0
-    x_lowright = 505000.0
-    y_lowright = -1590000.0
+    #x_origin = -90000.0  
+    #y_origin = -962000.0
+    #x_lowright = 505000.0
+    #y_lowright = -1590000.0
     
     #Isfjorden Subset
-    #x_origin = 83000.0
-    #y_origin = -1237947.0
-    #x_lowright = 166247.0
-    #y_lowright = -1338160.0
+    x_origin = 83000.0
+    y_origin = -1237947.0
+    x_lowright = 166247.0
+    y_lowright = -1338500.0
+    
+    #Vest Spitsbergen
+    #x_origin = -90000.0
+    #y_origin = -1187934.0
+    #x_lowright = 171359.0
+    #y_lowright = -1458582.0
     
     location = [x_origin, y_origin, x_lowright, y_lowright]
     
@@ -755,8 +853,8 @@ while year <= endyear:
     ################### END ADJUST PARAMETERS ####################################
     
     
-    filelist = CreateFilelist(year, startday, startmonth, year, endday, endmonth, infilepath)
-   
+    filelist = CreateFilelistSHP(year, startday, startmonth, year, endday, endmonth, infilepath)
+    
     
     for icechart in filelist:
         
@@ -766,21 +864,27 @@ while year <= endyear:
         #Convert Shapefile to Raster
         Shape2Raster(reprshapefile, rasterresolution, location)
         
+        #Mask Area if needed, file masklayer.tif needs to be in 
+        MaskArea(reprshapefile)
+        
         #set shapefile to None so that it stays None in case reprojection fails.
         reprshapefile = None
     
     #Add Missing Days (like weekends or faulty shapefile)
-    AddMissingDays(outfilepath)
+    filelist = CreateFilelistTIFF(year, startday, startmonth, year, endday, endmonth, outfilepath)    
+    AddMissingDays(outfilepath, filelist)
+    #Repeat filelist since files were added -- input to functions
+    filelist = CreateFilelistTIFF(year, startday, startmonth, year, endday, endmonth, outfilepath)
     
     #Creates map with number of days of fast ice per pixel
-    CreateMapFastIceDays(infilepath, outfilepath)
+    CreateMapFastIceDays(infilepath, outfilepath, filelist)
     
     #Create Consecutive Fasticedays
     consecutivenumber = 14
-    CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber)
+    CreateMapConsecutiveFastIceDays(infilepath, outfilepath, consecutivenumber, filelist)
     
     #Creates map showing percentage of sea ice per pixel
-    outputfile = CreatePercentageMap(infilepath, outfilepath)
+    outputfile = CreatePercentageMap(infilepath, outfilepath, filelist)
     
     #Creates ice edge map
     percentage = 30  #Set percentage for ice edge map
