@@ -80,7 +80,6 @@ def CountIcetype(infile, outfilepath):
     #Write Results to textfile
     print 'Writing to ', outputtextfile 
     textfile = open( outputtextfile, 'w')
-    textfile.write('Number of pixels, Resolution 200m = 40000m2 \n')
     textfile.write( 'rows: ' + str(rows) + ' cols: '+ str(cols) + ' \n\n' )
     textfile.write(' 0-13 days: \t' + str(noice) + '\n')
     textfile.write('15-20 days: \t' + str(oneweek) + '\n')

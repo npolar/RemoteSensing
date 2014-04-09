@@ -212,10 +212,21 @@ def CreateIcePercistanceMap(inpath, outfilepath):
         #Clear iceraster for next loop -- just in case
         iceraster = None
         
+    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    coastalerrormaskarray = coastalerrormask.ReadAsArray()
+    outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
+    
+       
     outband.WriteArray(outarray)
     outband.FlushCache()
-       
-
+    
+    outband = outraster.GetRasterBand(1)
+    srcband = outband
+    dstband = outband    
+    maskband = None
+    print "Apply SieveFilter one ", outraster
+    #gdal.SieveFilter( srcband, maskband, dstband,threshold = 3, connectedness = 4  )
+    
     #Clear arrays and close files
     outband = None
     iceraster = None
@@ -364,7 +375,13 @@ def CreateMaxMinIce(inpath, outfilepath):
     outarray = numpy.where( (landraster == 253), 253, outarray)
     outarray = numpy.where( (landraster == 254), 254, outarray)
     outarray = numpy.where( (landraster == 255), 255, outarray)
-
+    
+    #Error Areas at Coast
+    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    coastalerrormaskarray = coastalerrormask.ReadAsArray()
+    outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
+    
+    
     #Calculate the maximum-map from the NumberOfDays outarray
     #Using landraster again -- otherwise if NumberOfDay mask by chance 252, it is masked out
     outarraymax = numpy.where( (outarray == 0), 0, 1 )
@@ -388,7 +405,9 @@ def CreateMaxMinIce(inpath, outfilepath):
     outbandmax = outrastermax.GetRasterBand(1)
     outbandmin = outrastermin.GetRasterBand(1)
     
+    
     #Write all arrays to file
+    
     outband.WriteArray(outarray)
     outband.FlushCache()    
     
@@ -397,6 +416,39 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     outbandmin.WriteArray(outarraymin)
     outbandmin.FlushCache()
+    
+    # Remove noise in outbandmin    
+    srcband = outbandmin
+    dstband = outbandmin    
+    maskband = None
+    print "Apply SieveFilter one ", outrastermin
+    gdal.SieveFilter( srcband, maskband, dstband,threshold = 3, connectedness = 4  )
+    #load outbandmin once more and burn landmask again since sieve influences coastline
+    outarraymin = outrastermin.ReadAsArray()
+    outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   253), 253 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   254), 254 , outarraymin)
+    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
+    outbandmin = outrastermin.GetRasterBand(1)    
+    outbandmin.WriteArray(outarraymin)
+    outbandmin.FlushCache()
+    
+    # Remove noise in outbandmax    
+    srcband = outbandmax
+    dstband = outbandmax    
+    maskband = None
+    print "Apply SieveFilter one ", outrastermax
+    gdal.SieveFilter( srcband, maskband, dstband,threshold = 3, connectedness = 4  )
+    #load outbandmin once more and burn landmask again since sieve influences coastline
+    outarraymax = outrastermax.ReadAsArray()
+    outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
+    outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
+    outbandmax = outrastermax.GetRasterBand(1)    
+    outbandmax.WriteArray(outarraymax)
+    outbandmax.FlushCache()
     
     #Clear arrays and close files
     outband = None
@@ -486,7 +538,7 @@ outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
 #Get all files from given month
 startyear = 1980
 stopyear = 2010
-month = 2 #Values 1 to 12
+month = 3 #Values 1 to 12
 
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
