@@ -16,7 +16,7 @@ Documentation before each function and at https://github.com/npolar/RemoteSensin
 
 """
 
-import struct, numpy, gdal, gdalconst, glob, os, osr
+import struct, numpy, gdal, gdalconst, glob, os, osr, datetime
 
 def EPSG3411_2_EPSG3575(infile):
     '''
@@ -212,9 +212,9 @@ def CreateIcePercistanceMap(inpath, outfilepath):
         #Clear iceraster for next loop -- just in case
         iceraster = None
         
-    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
-    coastalerrormaskarray = coastalerrormask.ReadAsArray()
-    outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
+    #coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    #coastalerrormaskarray = coastalerrormask.ReadAsArray()
+    #outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
     
        
     outband.WriteArray(outarray)
@@ -377,9 +377,9 @@ def CreateMaxMinIce(inpath, outfilepath):
     outarray = numpy.where( (landraster == 255), 255, outarray)
     
     #Error Areas at Coast
-    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
-    coastalerrormaskarray = coastalerrormask.ReadAsArray()
-    outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
+    #coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    #coastalerrormaskarray = coastalerrormask.ReadAsArray()
+    #outarray = numpy.where( (coastalerrormaskarray == 1) & (outarray <= ( NumberOfDays / 60.0)), 0.0 , outarray )
     
     
     #Calculate the maximum-map from the NumberOfDays outarray
@@ -521,7 +521,94 @@ def CreateMaxMinIce(inpath, outfilepath):
     print 'Done Creating Max/Min Maps'        
     return outfilemax, outfilemin
     
-     
+def FilterCoastalAreas(outfilepath):
+    '''
+    Loop through all NSIDC ice concentration areas
+    In the coastal areas (defined by NSIDC_coastalerrormask_raster.tif) ice concentration
+    above 15% is only considered if ice is present three days before and after the date
+    '''
+    
+    #register all gdal drivers
+    gdal.AllRegister()
+    
+    # Iterate through all rasterfiles
+    filelist = glob.glob(outfilepath + 'nt*.tif')
+    
+    
+    #Files are all the same properties, so take first one to get info
+    firstfilename = filelist[0]
+    
+    #Define file names 
+    (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
+    (infileshortname, extension) = os.path.splitext(infilename)
+    
+
+    
+    #Open Coastal Mask into array
+    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    coastalerrormaskarray = coastalerrormask.ReadAsArray()
+    
+    #Create file receiving the ice mask
+    #get image size
+    rows = coastalerrormask.RasterYSize
+    cols = coastalerrormask.RasterXSize   
+    
+    coastalicemaskraster = numpy.zeros((rows, cols), numpy.float) 
+        #Loop through all files to do calculation
+    for infile in filelist:
+        #Find present data    
+        presentyear = int(infile[-22:-18])
+        presentmonth = int(infile[-18:-16])
+        presentday = int(infile[-16:-14])
+        
+        presentdate =  datetime.date(presentyear, presentmonth, presentday) 
+        
+        # ADJUST HOW MANY DAYS PLUS AND MINUS THE PRESENT DATE YOU WANT
+        dayrange = 2
+        
+        #Loop through the files around present day and determine how many days there is ice in coastal zone    
+        for i in range(-dayrange, dayrange +1):
+            diff = datetime.timedelta(days=i)
+            diffdate = presentdate + diff
+            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  infile[-14:]
+            if os.path.isfile(checkfilename):
+                checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
+                #Read input raster into array
+                checkfileraster = checkfile.ReadAsArray()
+                
+                coastalicemaskraster = numpy.where( (coastalerrormaskarray == 1) & (checkfileraster >= 38), coastalicemaskraster + 1 , 0 )
+                
+                
+        
+        #Let ice value in coastal zone persist if there was ice the days around it
+        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  infile[-14:]
+        presentdayfile = gdal.Open( presentdayfilename, gdalconst.GA_Update)
+        presentdayraster = presentdayfile.ReadAsArray()
+        print "coastal error mask for ", presentdayfilename
+        
+        presentdayraster = numpy.where( (coastalerrormaskarray == 1) & (coastalicemaskraster != 4 ), 0, presentdayraster)
+        #outarray contains now NumberOfDay with ice -- burn in landmask
+        landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+        landraster = landmask.ReadAsArray()
+        presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
+        presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
+        presentdayraster = numpy.where( (landraster == 253), 253, presentdayraster)
+        presentdayraster = numpy.where( (landraster == 254), 254, presentdayraster)
+        presentdayraster = numpy.where( (landraster == 255), 255, presentdayraster)        
+        
+        presentdayfileband = presentdayfile.GetRasterBand(1)
+            
+        presentdayfileband.WriteArray(presentdayraster)
+        presentdayfileband.FlushCache()
+    
+    
+    
+        
+        
+        
+    
+    
+        
      
 ##############################################################################
 
@@ -558,6 +645,8 @@ for icechart in filelist:
     print'convert ', icechart
     Bin2GeoTiff(icechart, outfilepath)
 
+
+FilterCoastalAreas(outfilepath)
     
 CreateIcePercistanceMap(outfilepath, outfilepath)
 
