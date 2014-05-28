@@ -16,7 +16,7 @@ Documentation before each function and at https://github.com/npolar/RemoteSensin
 
 """
 
-import struct, numpy, gdal, gdalconst, glob, os, osr, datetime, subprocess
+import struct, numpy, gdal, gdalconst, glob, os, osr, datetime, subprocess, shutil
 
 def EPSG3411_2_EPSG3575(infile):
     '''
@@ -26,7 +26,10 @@ def EPSG3411_2_EPSG3575(infile):
     
     (infilepath, infilename) = os.path.split(infile)
     (infileshortname, extension) = os.path.splitext(infilename)
-    outfile = infilepath + '\\EPSG3575\\' + infileshortname + '_EPSG3575.tif'
+    outdirectory = infilepath + '\\EPSG3575\\'
+    if not os.path.exists(outdirectory):
+        os.makedirs(outdirectory)
+    outfile =  outdirectory + infileshortname + '_EPSG3575.tif'
     print ' Reproject ', infile, ' to ', outfile 
     os.system('gdalwarp -s_srs EPSG:3411 -tr 25000 -25000 -t_srs EPSG:3575 -of GTiff ' + infile + ' ' + outfile)
     
@@ -231,13 +234,14 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice):
     #FUNCTION CreateMaxMinIce  HAS TO BE RUN BEFORE CreateIcePercistanceMap
     max_chart = gdal.Open(max_ice, gdalconst.GA_ReadOnly)
     max_chartraster = max_chart.ReadAsArray()
-    
+    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landraster = landmask.ReadAsArray()
     outarray = numpy.where(max_chartraster == 1, outarray, 0)
-    outarray = numpy.where( (iceraster ==   251), 251 , outarray)
-    outarray = numpy.where( (iceraster ==   252), 252 , outarray)
-    outarray = numpy.where( (iceraster ==   253), 253 , outarray)
-    outarray = numpy.where( (iceraster ==   254), 254 , outarray)
-    outarray = numpy.where( (iceraster ==   255), 255 , outarray)
+    outarray = numpy.where( (landraster ==   251), 251 , outarray)
+    outarray = numpy.where( (landraster ==   252), 252 , outarray)
+    outarray = numpy.where( (landraster ==   253), 253 , outarray)
+    outarray = numpy.where( (landraster ==   254), 254 , outarray)
+    outarray = numpy.where( (landraster ==   255), 255 , outarray)
     
     outband = outraster.GetRasterBand(1)   
     outband.WriteArray(outarray)
@@ -753,20 +757,20 @@ def FilterCoastalAreas(outfilepath):
             diff = datetime.timedelta(days=i)
             diffdate = presentdate + diff
             checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  infile[-14:]
-            print checkfilename
+            
             if os.path.isfile(checkfilename):
                 checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
                 #Read input raster into array
                 checkfileraster = checkfile.ReadAsArray()
                 
                 coastalicemaskraster = numpy.where( (coastalerrormaskarray == 1) & (checkfileraster >= 38), coastalicemaskraster + 1 , coastalicemaskraster )
-                print coastalicemaskraster.max(), coastalicemaskraster.min()
+                
                 
             else:
                 #If previous day files do not exist, take present day one -- otherwise it does not add up with number of Days                
                 
                 coastalicemaskraster = numpy.where( (coastalerrormaskarray == 1) & (presentdayraster >= 38), coastalicemaskraster + 1 , coastalicemaskraster )
-                print coastalicemaskraster.max(), coastalicemaskraster.min() 
+                
                 
         
 
@@ -939,15 +943,31 @@ def FilterConsecDays(outfilepath):
 
 
 #infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\2012\\'
-outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\'
+
 
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
 startyear = 1984
 stopyear = 2013
-month = 4               #Values 1 to 12
+month = 3                            #Values 1 to 12
 
+monthDict={1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
+outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\' + monthDict[month] + '\\'
+
+if os.path.exists(outfilepath):
+    answer = raw_input(outfilepath + " exists, delete and overwrite folder? [Y]es?")
+    if answer.lower().startswith('y'):
+        print "Overwriting " + outfilepath        
+        shutil.rmtree(outfilepath)
+        os.makedirs(outfilepath)
+    else:
+        print "Ending program"
+        sys.exit()
+        
+elif not os.path.exists(outfilepath):
+    os.makedirs(outfilepath)
+    
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
 for year in range(startyear, stopyear + 1):
