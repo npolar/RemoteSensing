@@ -129,7 +129,7 @@ def Bin2GeoTiff(infile,outfilepath ):
     EPSG3411_2_EPSG3575(outfile)
     
     
-def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice):
+def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
     '''
     Creates map showing percentage ice coverage over a given period
     This function creates the ice persistence charts. 
@@ -234,7 +234,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice):
     #FUNCTION CreateMaxMinIce  HAS TO BE RUN BEFORE CreateIcePercistanceMap
     max_chart = gdal.Open(max_ice, gdalconst.GA_ReadOnly)
     max_chartraster = max_chart.ReadAsArray()
-    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
     outarray = numpy.where(max_chartraster == 1, outarray, 0)
     outarray = numpy.where( (landraster ==   251), 251 , outarray)
@@ -261,7 +261,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice):
     return outfile
     print 'Done Creating Persistence Map'
     
-def CreateMaxMinIce(inpath, outfilepath):   
+def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raster, oceanmask_buffer5, NSIDC_balticmask ):   
     ''' 
          Creates maximum and minimum ice map, GeoTIFF and shapefile
          maximum = at least one day ice at this pixel
@@ -406,7 +406,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     
     
     #outarray contains now NumberOfDay with ice -- burn in landmask
-    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landmask = gdal.Open(landmask_raster , gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
     outarray = numpy.where( (landraster == 251), 251, outarray)
     outarray = numpy.where( (landraster == 252), 252, outarray)
@@ -537,8 +537,8 @@ def CreateMaxMinIce(inpath, outfilepath):
     # -sql "SELECT *, OGR_GEOM_AREA FROM temp WHERE DN<250 )
     # use "dissolve" to get ocean only with one value and the run buffer -5000m such that coast line does not match but overlaps ice polygon
     # because only then it is clipped
-    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemax + ' ' + outshape_temp2max)
-    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_linemin + ' ' + outshape_temp2min)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemax + ' ' + outshape_temp2max)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemin + ' ' + outshape_temp2min)
     
     #Cleaning up temporary files 
     os.remove(outshape_tempmax)
@@ -566,8 +566,8 @@ def CreateMaxMinIce(inpath, outfilepath):
     print '\n Add Baltic Sea Ice.'
     
     #polygonice only Baltic Sea
-    os.system('gdal_polygonize.py ' + outfilemax + ' -mask C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_balticmask.tif -f "ESRI Shapefile" ' + outshape_tempmax )    
-    os.system('gdal_polygonize.py ' + outfilemin + ' -mask C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_balticmask.tif -f "ESRI Shapefile" ' + outshape_tempmin )    
+    os.system('gdal_polygonize.py ' + outfilemax + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + outshape_tempmax )    
+    os.system('gdal_polygonize.py ' + outfilemin + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + outshape_tempmin )    
         
     # Add Baltic to existing polymax and polymin 
     os.system('ogr2ogr -update -append ' + outshape_polymax + ' ' +   outshape_tempmax +  ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 20000000000.0"')
@@ -579,8 +579,8 @@ def CreateMaxMinIce(inpath, outfilepath):
     os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2min + ' ' + outshape_polymin)
     
     #clip coast as above
-    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_temp3max + ' ' + outshape_temp2max)
-    os.system('ogr2ogr -progress -clipsrc C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp '+  outshape_temp3min + ' ' + outshape_temp2min)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_temp3max + ' ' + outshape_temp2max)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_temp3min + ' ' + outshape_temp2min)
     
     # Add Baltic line to existing min/max line
     os.system('ogr2ogr -update -append ' + outshape_linemax + ' ' +   outshape_temp3max )
@@ -611,7 +611,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     # OPen raster and burn in landmask again -- is not contained in polygon
     outarray = gdal.Open( outfilemax, gdalconst.GA_Update)
     outarraymax = outarray.ReadAsArray()
-    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
     outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
     outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
@@ -638,7 +638,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     # OPen raster and burn in landmask again -- is not contained in polygon
     outarray = gdal.Open( outfilemin, gdalconst.GA_Update)
     outarraymin = outarray.ReadAsArray()
-    landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+    landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
     outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
     outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
@@ -692,7 +692,7 @@ def CreateMaxMinIce(inpath, outfilepath):
     print 'Done Creating Max/Min Maps'        
     return outfilemax, outfilemin
     
-def FilterCoastalAreas(outfilepath):
+def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
     '''
     Problem: Along Coastal Areas, the land/ocean boundary appears as ice values
     Solution: Mask for problematice areas, but consider as ice if value remains
@@ -721,7 +721,7 @@ def FilterCoastalAreas(outfilepath):
     
     #Open Coastal Mask into array
     #THe coastal mask defines error areas -- value 1 for coast, value 2 for Baltic and value 3 for never-ice areas.
-    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    coastalerrormask = gdal.Open(coastalerrormask_raster, gdalconst.GA_ReadOnly)
     coastalerrormaskarray = coastalerrormask.ReadAsArray()
     
     #Create file receiving the ice mask
@@ -762,15 +762,12 @@ def FilterCoastalAreas(outfilepath):
                 checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
                 #Read input raster into array
                 checkfileraster = checkfile.ReadAsArray()
-                
                 coastalicemaskraster = numpy.where( (coastalerrormaskarray == 1) & (checkfileraster >= 38), coastalicemaskraster + 1 , coastalicemaskraster )
                 
                 
             else:
                 #If previous day files do not exist, take present day one -- otherwise it does not add up with number of Days                
-                
                 coastalicemaskraster = numpy.where( (coastalerrormaskarray == 1) & (presentdayraster >= 38), coastalicemaskraster + 1 , coastalicemaskraster )
-                
                 
         
 
@@ -812,7 +809,7 @@ def FilterCoastalAreas(outfilepath):
         presentdayraster = numpy.where( (coastalerrormaskarray == 2) & (coastalicemaskraster < 5 ), 0, presentdayraster)
                 
         # outarray contains filtered values -- burn in landmask
-        landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+        landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
         landraster = landmask.ReadAsArray()
         presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
         presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
@@ -828,7 +825,7 @@ def FilterCoastalAreas(outfilepath):
     
     
         
-def FilterConsecDays(outfilepath):
+def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
     '''
     Problem: Along Coastal Areas, the land/ocean boundary appears as ice values
     Solution: Mask for problematice areas, but consider as ice if value remains
@@ -856,7 +853,7 @@ def FilterConsecDays(outfilepath):
 
     
     #Open Coastal Mask into array
-    coastalerrormask = gdal.Open("C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif", gdalconst.GA_ReadOnly)
+    coastalerrormask = gdal.Open(coastalerrormask_raster, gdalconst.GA_ReadOnly)
     coastalerrormaskarray = coastalerrormask.ReadAsArray()
     
     #Create file receiving the ice mask
@@ -912,7 +909,7 @@ def FilterConsecDays(outfilepath):
         #This does not shorten or lengthen the ice season since only day before or after is needed
         presentdayraster = numpy.where( (coastalicemaskraster <= ((dayrange * 2)) ), 0, presentdayraster)
         #outarray contains now NumberOfDay with ice -- burn in landmask
-        landmask = gdal.Open('C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif', gdalconst.GA_ReadOnly)
+        landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
         landraster = landmask.ReadAsArray()
         presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
         presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
@@ -943,6 +940,12 @@ def FilterConsecDays(outfilepath):
 
 
 #infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\2012\\'
+### Location of needed Raster Masks ###
+
+landmask_raster = 'C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif'
+coastalerrormask_raster = "C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif"
+oceanmask_buffer5 = 'C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp'
+NSIDC_balticmask = 'C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_balticmask.tif'
 
 
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
@@ -950,7 +953,7 @@ def FilterConsecDays(outfilepath):
 #Get all files from given month
 startyear = 1984
 stopyear = 2013
-month = 3                            #Values 1 to 12
+month = 10                            #Values 1 to 12
 
 monthDict={1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
 outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\' + monthDict[month] + '\\'
@@ -989,15 +992,15 @@ for icechart in filelist:
 
 
 
-FilterConsecDays(outfilepath)
+FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
 
-FilterCoastalAreas(outfilepath)
+FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster)
     
 
 #Max / Min must be done before persistence, since the latter is filtered with max-map
-max_ice, min_ice = CreateMaxMinIce(outfilepath, outfilepath)
+max_ice, min_ice = CreateMaxMinIce(outfilepath, outfilepath, landmask_raster, coastalerrormask_raster, oceanmask_buffer5, NSIDC_balticmask )
 
-CreateIcePercistanceMap(outfilepath, outfilepath, max_ice, min_ice)
+CreateIcePercistanceMap(outfilepath, outfilepath, max_ice, min_ice, landmask_raster)
 
 print 24*'#'
 print "Done creating Ice Persistance Map"

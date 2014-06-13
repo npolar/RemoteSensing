@@ -47,45 +47,43 @@ def RadarsatDetailedQuicklook(radarsatfile):
     (infileshortname, extension) = os.path.splitext(infilename)
     
     #Open zipfile
-    zfile = zipfile.ZipFile(radarsatfile, 'r')
     print    
-    print "Decompressing image for " + infilename + " on " + infilepath    
+    print "Decompressing image for " + infilename + " on " + infilepath
+    try:
+        zfile = zipfile.ZipFile(radarsatfile, 'r')
+    except:
+        outputfilename = None
+        print infilename, ' is corrupt, skipped.'
+        return outputfilename
     
     #Extract imagery file from zipfile
     try:
         zfile.extractall(infilepath)
     except:
-        browseimage = None
-        return browseimage
+        outputfilename = None
+        print infilename, ' is corrupt, skipped.'
+        return outputfilename
     
     #Define names
     #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
     gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
-    outputfilename = infilepath + '\\' + infileshortname + '\\' + infileshortname + '_EPSG32633.tif'
-    browseimage = infilepath + '\\' + infileshortname + '_EPSG32633.tif'
-    
+    outputfilename = infilepath + '\\' + infileshortname + '_EPSG32633.tif'
+        
     #Call gdalwarp
     print
     print "map projecting file"
     print
     os.system('gdalwarp -tps  -t_srs EPSG:32633 ' + gdalsourcefile + ' ' + outputfilename )  
     
-    
-    #Call gdaltranslate    
-    print
-    print "downsampling file"
-    print
-    os.system('gdal_translate -ot byte -outsize 8% 8% -scale 0 50000 0 255 ' + outputfilename + ' ' + browseimage )
-    
+          
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(infilepath + '\\' + infileshortname )
     
     #Close zipfile
     zfile.close()
     
-    return browseimage
+    return outputfilename
 
-    
 def ExtractRadarsat(radarsatfile, location):
     '''
     USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
@@ -147,7 +145,7 @@ def ExtractRadarsat(radarsatfile, location):
     return contained            
     
     
-def ProcessNest(radarsatfile, outputfilepath, location, resolution = 50):
+def ProcessNest(radarsatfile, outputfilepath, location, resolution):
     '''
     Calls Nest SAR Toolbox to calibrate, map project and if wanted 
     terraincorrect images
@@ -243,86 +241,97 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution = 50):
 # CORE OF PROGRAM FOLLOWS HERE
 #############################################################
 
+year = 2014
 
-# Define filelist to be processed (radarsat zip files)
-#filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
-#filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
-filelist = []
-for root, dirnames, filenames in os.walk('G:\Radarsat\\sathav\\2013'):
-  for filename in fnmatch.filter(filenames, '*.zip'):
-      filelist.append(os.path.join(root, filename))
-
-outputfilepath = 'G:`\satellittdata\\processed_SCNA'
-
-
-#outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
-
-
-#Define Area Of Interest
-#upperleft_x = 8000.0
-#upperleft_y = -1010000.0
-#lowerright_x = 350000.0
-#lowerright_y = -1495000.0
-
-#Holtedalfonne
-upperleft_x = 419726.0
-upperleft_y =  8812000.0       
-lowerright_x = 475000.0        
-lowerright_y = 8737956.0    
-
-#Inglefieldbukta
-#upperleft_x = 564955.9196850983425975
-#upperleft_y = 8750041.7983950804919004 
-#lowerright_x = 726949.9692189423367381
-#lowerright_y = 8490034.1236895751208067
-
-#Wahlenbergbreen
-
-#upperleft_x = 462579.6007352703018114
-#upperleft_y= 8734288.4610685724765062
-#lowerright_x= 483506.7996030483045615
-#lowerright_y= 8708179.2891478203237057
-
-
-location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
-
-#Loop through filelist and process
-for radarsatfile in filelist:
+while year <= 2014:
+    
+    # Define filelist to be processed (radarsat zip files)
+    #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
+    #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
+    
+    #foldername = 'H:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year)
+    foldername =  'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year)
+    
+    print 'check ', year, foldername
+    
+    filelist = []
+    for root, dirnames, filenames in os.walk(foldername):
+      for filename in fnmatch.filter(filenames, '*.zip'):
+          filelist.append(os.path.join(root, filename))
+    
+    #outputfilepath = 'G:\\satellittdata\\processed_SCWA'
+    outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\HoltedalsfonnaKongsfjorden\\2014'
+   
+    
+    #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
     
     
-    resolution = 50  #for SCWA
-    ###Activate if only SCNA files wanted ###
-    #skip file if SCWA
-    resolution = 20
-    if 'SCWA' in radarsatfile:
-        continue
+    #Define Area Of Interest
+    #upperleft_x = 8000.0
+    #upperleft_y = -1010000.0
+    #lowerright_x = 350000.0
+    #lowerright_y = -1495000.0
+    
+    #Austfonna
+    #upperleft_x = 651500.0
+    #upperleft_y =  8891000.0       
+    #lowerright_x = 740000.0        
+    #lowerright_y = 8800881.0     
+    
+    #Holtedalfonne
+    upperleft_x = 419726.0
+    upperleft_y =  8812000.0       
+    lowerright_x = 475000.0        
+    lowerright_y = 8737956.0    
+    
+    #Inglefieldbukta
+    #upperleft_x = 564955.9196850983425975
+    #upperleft_y = 8750041.7983950804919004 
+    #lowerright_x = 726949.9692189423367381
+    #lowerright_y = 8490034.1236895751208067
+    
+    #Wahlenbergbreen
+    
+    #upperleft_x = 462579.6007352703018114
+    #upperleft_y= 8734288.4610685724765062
+    #lowerright_x= 483506.7996030483045615
+    #lowerright_y= 8708179.2891478203237057
     
     
-    #Create Quicklook from which area is determined (not very good solution)
-    outputfile = RadarsatDetailedQuicklook(radarsatfile)
-    if outputfile == None:
-        continue
+    location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
     
-    #Check if file contains parts of Area Of Interest
-       
-    contained = ExtractRadarsat(radarsatfile, location)
-    
-    #If not within Area Of Interest
-    if contained == False:
-        print radarsatfile + ' skipped'
-        continue
+    #Loop through filelist and process
+    for radarsatfile in filelist:
         
-    resolution = 50  #for SCWA
-    ###Activate if only SCNA files wanted ###
-    #skip file if SCWA
-    resolution = 20
-    if radarsatfile[-37:-33] == 'SCWA':
-        continue
         
-    print radarsatfile + ' processed'
-    #Process image
-    ProcessNest(radarsatfile, outputfilepath, location)
+        resolution = 50  #for SCWA
+        ###Activate if only SCNA files wanted ###
+        #skip file if SCWA
+        #resolution = 20
+        #if 'SCWA' in radarsatfile:
+        #    continue
+        
+        
+        #Create Quicklook from which area is determined (not very good solution)
+        outputfile = RadarsatDetailedQuicklook(radarsatfile)
+        if outputfile == None:
+            continue
+        
+        #Check if file contains parts of Area Of Interest
+           
+        contained = ExtractRadarsat(radarsatfile, location)
+        
+        #If not within Area Of Interest
+        if contained == False:
+            print radarsatfile + ' skipped'
+            continue
+            
+           
+        print radarsatfile + ' processed'
+        #Process image
+        ProcessNest(radarsatfile, outputfilepath, location, resolution)
     
+    year = year + 1
 
 print 'finished extracting Svalbard images'
 

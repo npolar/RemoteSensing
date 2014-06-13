@@ -106,7 +106,8 @@ def ProcessNest(radarsatfile):
     
     #Define names of input and outputfile
     gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3033.dim'
+    #outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3033.dim'
+    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3033.dim'
     
     #Extract the zipfile
     zfile = zipfile.ZipFile(radarsatfile, 'r')
@@ -119,7 +120,7 @@ def ProcessNest(radarsatfile):
     
     #Call NEST routine
     print
-    print "calibration and speckle and SARSIM"
+    print "Terrain Correction"
     print
     print "inputfile " + radarsatfileshortname
     print "outputfile " + outputfile
@@ -131,9 +132,15 @@ def ProcessNest(radarsatfile):
     #check that xml file is correct!
     
     #Process using NEST
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
-            
-    
+    #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    #TERRAIN CORRECTION:    
+    if "_U" in radarsatfile:
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_Ultrafine_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    if "_SC" in radarsatfile:                
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    if "_F" in radarsatfile:
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+   
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
 
@@ -160,7 +167,7 @@ def ProcessNest(radarsatfile):
         destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
         jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
         
-        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
+        #jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
         
         print
         print 'Converting: '
@@ -181,7 +188,7 @@ def ProcessNest(radarsatfile):
         os.system("gdaladdo -r NEAREST -ro " + jpegfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create small jpeg
-        os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        #os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
         
         #Remove original GeoTIFF in 3033 since we now have 3031
         os.remove(destinationfile)
@@ -199,8 +206,8 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-#filelist = glob.glob(r'Z:\Radarsat\2013\RS2_20131126_012545_0041*.zip')
-filelist = glob.glob(r'Z:\Radarsat\2014\RS2_2014011*.zip')
+#filelist = glob.glob(r'G:\Harvey_temp\*.zip')
+filelist = glob.glob(r'Z:\Radarsat\Flerbruksavtale\DronningMaudLand\2014\*.zip')
 
 
 #Loop through filelist and process

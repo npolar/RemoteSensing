@@ -148,7 +148,7 @@ def ProcessNest(radarsatfile):
         
     #Define names of input and outputfile
     gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG32633.dim'
+    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG32633.dim'
 
     #Extract the zipfile
     zfile = zipfile.ZipFile(radarsatfile, 'r')
@@ -192,22 +192,22 @@ def ProcessNest(radarsatfile):
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
-        destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif'
+        destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_polarstereo_' + polarisation + '.tif'
         #auxfile is created automatically by NEST, name defined to remove it       
-        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_polarstereo_' + polarisation + '.tif.aux.xml'
-        destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.tif'
-        jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '.jpg'
+        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_polarstereo_' + polarisation + '.tif.aux.xml'
+        destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
+        jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
         
-        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_40percent.jpg'
-        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_10percent.jpg'
-        jpegsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_20percent.jpg'
-        jpegsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_30percent.jpg'
-        jpegsmallfile5 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_50percent.jpg'
+        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.jpg'
+        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.jpg'
+        jpegsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.jpg'
+        jpegsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.jpg'
+        jpegsmallfile5 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_50percent.jpg'
         
-        tiffsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_40percent.tif'
-        tiffsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_10percent.tif'
-        tiffsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_20percent.tif'
-        tiffsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3575_' + polarisation + '_30percent.tif'
+        tiffsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.tif'
+        tiffsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.tif'
+        tiffsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.tif'
+        tiffsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.tif'
         
         print
         print 'Converting: '
@@ -256,6 +256,7 @@ def ProcessNest(radarsatfile):
 
 # Define filelist to be processed (radarsat zip files)
 filelist = glob.glob(r'G:\satellittdata\flerbrukBarents\RS2*.zip')
+
 
 #Define Area Of Interest
 upperleft_x = 8000.0
