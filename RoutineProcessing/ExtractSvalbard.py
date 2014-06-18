@@ -33,9 +33,65 @@ ISSUES AT PRESENT:
 - Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
 
-import zipfile, glob, os, shutil, gdal, fnmatch
+import zipfile, glob, os, shutil, gdal, fnmatch, pyproj
 
-def RadarsatDetailedQuicklook(radarsatfile):
+def CheckExistingQuicklook(radarsatfile, location):
+    '''
+    check if quicklook exists and if so, if area is contained in it
+    '''
+    
+    #Get Filename of corresponding quicklook for radarsatfile
+    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
+    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
+       
+    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.jpg'
+
+    
+    #check if quicklook exists
+    if (not os.path.exists(existingquicklook)):
+        return
+    
+    #convert location to EPSG32633
+    EPSG3575 = pyproj.Proj("+init=EPSG:3575")
+    EPSG32633 = pyproj.Proj("+init=EPSG:32633")
+    
+    quick_upperleft_x, quick_upperleft_y = pyproj.transform(EPSG32633, EPSG3575, location[0], location[1])
+    quick_lowerleft_x, quick_lowerleft_y =pyproj.transform(EPSG32633, EPSG3575, location[2], location[3])
+    
+    #Get Corners from existing quicklook
+    #Open GeoTiff Quicklook
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    dataset = gdal.Open(existingquicklook, gdal.GA_ReadOnly)
+    
+    contained = False     
+    if dataset == None:
+        return contained
+    
+    #Get Geoinformation
+    geotrans = dataset.GetGeoTransform()
+    cols = dataset.RasterXSize
+    rows = dataset.RasterYSize
+    #Determine extension and resolution
+    upperleft_x = geotrans[0]
+    upperleft_y = geotrans[3]
+    pixelwidth = geotrans[1]
+    pixelheight = geotrans[5]
+    lowerright_x = upperleft_x + pixelwidth * cols
+    lowerright_y = upperleft_y + pixelheight * rows
+    
+           
+    #Check if two points are contained in image
+    contained = False
+    print quick_upperleft_x , upperleft_x , quick_lowerright_x, quick_upperleft_x , lowerright_x  , quick_lowerright_x
+    print quick_upperleft_y , upperleft_y , quick_lowerright_y, quick_upperleft_y , lowerright_y, quick_lowerright_y
+    if ((quick_upperleft_x < upperleft_x < quick_lowerright_x) and (quick_upperleft_x < lowerright_x  < quick_lowerright_x)):
+        if ((quick_upperleft_y >   upperleft_y > quick_lowerright_y) and (quick_upperleft_y >  lowerright_y > quick_lowerright_y)):
+            contained = True   
+            print radarsatfile + ' matches'
+    return contained
+
+def CreateQuicklook(radarsatfile):
     '''
     Takes the Radarsat-2 zipfile and creates a map projected quicklook from 
     the imagery_HH file
@@ -84,7 +140,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     
     return outputfilename
 
-def ExtractRadarsat(radarsatfile, location):
+def CheckLocation(radarsatfile, location):
     '''
     USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
 
@@ -105,7 +161,9 @@ def ExtractRadarsat(radarsatfile, location):
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
     radarsatquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_EPSG32633.tif'
     
+
     
+         
     #Open GeoTiff Quicklook
     driver = gdal.GetDriverByName('GTiff')
     driver.Register()
@@ -191,6 +249,8 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
         os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     elif resolution == 20:
         os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem20.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    elif resolution == 25:
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem25.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -249,8 +309,7 @@ while year <= 2014:
     #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
     #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
     
-    #foldername = 'H:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year)
-    foldername =  'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year)
+    foldername = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year) + '\\05_May'
     
     print 'check ', year, foldername
     
@@ -259,14 +318,11 @@ while year <= 2014:
       for filename in fnmatch.filter(filenames, '*.zip'):
           filelist.append(os.path.join(root, filename))
     
-    #outputfilepath = 'G:\\satellittdata\\processed_SCWA'
-    outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\HoltedalsfonnaKongsfjorden\\2014'
+    #outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\HoltedalsfonnaKongsfjorden_20meter\\2014'
+    outputfilepath = 'C:\\Users\\max\\Documents\\trash'
    
     
-    #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
-    
-    
-    #Define Area Of Interest
+    #DEFINE AREA OF INTEREST IN EPSG:32633
     #upperleft_x = 8000.0
     #upperleft_y = -1010000.0
     #lowerright_x = 350000.0
@@ -304,22 +360,36 @@ while year <= 2014:
     for radarsatfile in filelist:
         
         
-        resolution = 50  #for SCWA
+        #resolution = 50  #for SCWA
         ###Activate if only SCNA files wanted ###
         #skip file if SCWA
-        #resolution = 20
-        #if 'SCWA' in radarsatfile:
-        #    continue
-        
-        
-        #Create Quicklook from which area is determined (not very good solution)
-        outputfile = RadarsatDetailedQuicklook(radarsatfile)
-        if outputfile == None:
+        resolution = 25
+        if 'SCWA' in radarsatfile:
             continue
         
-        #Check if file contains parts of Area Of Interest
+        #Check if quicklook exists and contains area
+        #Get Filename of corresponding quicklook for radarsatfile
+        (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
+        (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
+       
+        existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.jpg'
+        print existingquicklook
+        
+        
+        #check if quicklook exists
+        if ( os.path.exists(existingquicklook)):
+            print "quicklook exists"
+            contained = CheckExistingQuicklook(radarsatfile, location)
+        else:
+            #Create Quicklook from which area is determined (not very good solution)
+            print "quicklook to be created"
+            outputfile = CreateQuicklook(radarsatfile)
+            if outputfile == None:
+                continue
+        
+            #Check if file contains parts of Area Of Interest
            
-        contained = ExtractRadarsat(radarsatfile, location)
+            contained = CheckLocation(radarsatfile, location)
         
         #If not within Area Of Interest
         if contained == False:
@@ -330,6 +400,11 @@ while year <= 2014:
         print radarsatfile + ' processed'
         #Process image
         ProcessNest(radarsatfile, outputfilepath, location, resolution)
+            #Remove quicklook as jpeg no available
+        try:
+            os.remove(outputfile)
+        except:
+            pass
     
     year = year + 1
 

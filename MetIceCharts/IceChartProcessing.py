@@ -789,15 +789,15 @@ print "*"*31
 print "Running IceChartProcessing"
 print "*"*31
 print
-startyear = 1998
-endyear = 2014
+startyear = 1997
+endyear = 2013
 
 #FOR EVERY YEAR ONLY THE FOLLOWING MONTH
 startday = 1
-startmonth = 1
+startmonth = 12
 
 endday = 31
-endmonth = 1
+endmonth = 12
 
 year = startyear
 while year <= endyear:

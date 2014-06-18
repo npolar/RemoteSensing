@@ -32,10 +32,64 @@ ISSUES AT PRESENT:
 - Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
 
-import zipfile, glob, os, shutil, gdal
+import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
 
+def CheckExistingQuicklook(radarsatfile, location):
+    '''
+    check if quicklook exists and if so, if area is contained in it
+    '''
+    
+    #Get Filename of corresponding quicklook for radarsatfile
+    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
+    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
+       
+    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
 
-def RadarsatDetailedQuicklook(radarsatfile):
+    
+    #check if quicklook exists
+    if (not os.path.exists(existingquicklook)):
+        return
+    
+    
+    upperleft_x = location[0]
+    upperleft_y = location[1]
+    lowerleft_x = location[2]
+    lowerleft_y = location[3]
+    
+    #Get Corners from existing quicklook
+    #Open GeoTiff Quicklook
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    dataset = gdal.Open(existingquicklook, gdal.GA_ReadOnly)
+    
+    contained = False     
+    if dataset == None:
+        return contained
+    
+    #Get Geoinformation
+    geotrans = dataset.GetGeoTransform()
+    cols = dataset.RasterXSize
+    rows = dataset.RasterYSize
+    #Determine extension and resolution
+    quick_upperleft_x = geotrans[0]
+    quick_upperleft_y = geotrans[3]
+    pixelwidth = geotrans[1]
+    pixelheight = geotrans[5]
+    quick_lowerright_x = quick_upperleft_x + pixelwidth * cols
+    quick_lowerright_y = quick_upperleft_y + pixelheight * rows
+    
+           
+    #Check if two points are contained in image
+    contained = False
+    #print quick_upperleft_x , upperleft_x , quick_lowerright_x, quick_upperleft_x , lowerright_x  , quick_lowerright_x
+    #print quick_upperleft_y , upperleft_y , quick_lowerright_y, quick_upperleft_y , lowerright_y, quick_lowerright_y
+    if ((quick_upperleft_x < upperleft_x < quick_lowerright_x) and (quick_upperleft_x < lowerright_x  < quick_lowerright_x)):
+        if ((quick_upperleft_y >   upperleft_y > quick_lowerright_y) and (quick_upperleft_y >  lowerright_y > quick_lowerright_y)):
+            contained = True   
+            print 'Found match: ', radarsatfile 
+    return contained
+
+def CreateQuicklook(radarsatfile):
     '''
     Takes the Radarsat-2 zipfile and creates a map projected quicklook from 
     the imagery_HH file
@@ -50,7 +104,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     zfile = zipfile.ZipFile(radarsatfile, 'r')
     print    
     print "Decompressing image for " + infilename + " on " + infilepath    
-    
+    print
     #Extract imagery file from zipfile
     try:
         zfile.extractall(infilepath)
@@ -77,7 +131,7 @@ def RadarsatDetailedQuicklook(radarsatfile):
     
     return outputfilename
     
-def ExtractRadarsat(radarsatfile, location):
+def CheckLocation(radarsatfile, location):
     '''
     USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
 
@@ -120,15 +174,19 @@ def ExtractRadarsat(radarsatfile, location):
            
     #Check if two points are contained in image
     contained = False
-    if ((location[0] < upperleft_x < location[2]) or (location[0] < lowerright_x < location[2])):
-        if ((location[1] >  upperleft_y > location[3]) or (location[1] >  lowerright_y > location[3])):
-            contained = True   
-            print radarsatfile + ' matches'
     
+    #print location[0], upperleft_x, location[2], location[0], lowerright_x, location[2]
+    #print location[1], upperleft_y, location[3], location[1], lowerright_y, location[3]
+    
+  
+    if ((upperleft_x < location[0] < lowerright_x) and (upperleft_x < location[2]  < lowerright_x)):
+        if ((upperleft_y >  location[1] > lowerright_y) and (upperleft_y >  location[3] > lowerright_y)):
+            contained = True   
+            print 'Found match', radarsatfile 
     return contained            
     dataset = None
     
-def ProcessNest(radarsatfile):
+def ProcessNest(radarsatfile, outputfilepath, location):
     '''
     Calls Nest SAR Toolbox to calibrate, map project and if wanted 
     terraincorrect images
@@ -148,7 +206,7 @@ def ProcessNest(radarsatfile):
         
     #Define names of input and outputfile
     gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG32633.dim'
+    outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
 
     #Extract the zipfile
     zfile = zipfile.ZipFile(radarsatfile, 'r')
@@ -159,14 +217,12 @@ def ProcessNest(radarsatfile):
     
     #Call NEST routine
     print
-    print "calibration and speckle and SARSIM"
+    print "NEST Processing"
     print
     print "inputfile " + radarsatfileshortname
-    print "outputfile " + outputfile
+    print "outputfile " + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
     print
-    print "Range Doppler terraincorrect, around 10 minutes."
-    print
-    
+      
     #check that xml file is correct!
     
     #Process using NEST
@@ -192,37 +248,58 @@ def ProcessNest(radarsatfile):
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
-        destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_polarstereo_' + polarisation + '.tif'
+        destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_temp.tif'
         #auxfile is created automatically by NEST, name defined to remove it       
-        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_polarstereo_' + polarisation + '.tif.aux.xml'
-        destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
-        jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
+        auxfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif.aux.xml'
+        destinationfile2 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
+        destinationfile3 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_SUBSET.tif'
+        jpegfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
+        jpegfile3 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_SUBSET.jpg'
         
-        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.jpg'
-        jpegsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.jpg'
-        jpegsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.jpg'
-        jpegsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.jpg'
-        jpegsmallfile5 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_50percent.jpg'
+        jpegsmallfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.jpg'
+        jpegsmallfile2 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.jpg'
+        jpegsmallfile3 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.jpg'
+        jpegsmallfile4 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.jpg'
+        jpegsmallfile5 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_50percent.jpg'
         
-        tiffsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.tif'
-        tiffsmallfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.tif'
-        tiffsmallfile3 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.tif'
-        tiffsmallfile4 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.tif'
+        tiffsmallfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_40percent.tif'
+        tiffsmallfile2 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_10percent.tif'
+        tiffsmallfile3 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_20percent.tif'
+        tiffsmallfile4 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_30percent.tif'
         
         print
-        print 'Converting: '
+        print 'Converting to GeoTIFF: '
         print '\nfrom ' + envifile
-        print '\nto ' + destinationfile
+        print '\nto ' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
         
+ 
+        os.system("gdal_translate -a_srs EPSG:3575 -stats -of GTiff  " + envifile + " " +  destinationfile2)
+                    
         
-        #Convert toGeoTIFF
-        os.system("gdal_translate -a_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -stats -of GTiff  " + envifile + " " +  destinationfile)
-        
-        #Reproject to EPSG:3575
-        os.system("gdalwarp -s_srs C:\Users\max\Documents\PythonProjects\Nest\polarstereo.prj -t_srs EPSG:3575 " + destinationfile + " " +  destinationfile2)
-        
-        #Convert to JPG
-        os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        if location != []:
+            print
+            print "subsetting the scene"
+            print
+            
+            
+            upperleft_x = location[0]
+            upperleft_y = location[1]
+            lowerleft_x = location[2]
+            lowerleft_y = location[3]       
+            os.system("gdal_translate -a_srs EPSG:3575 -stats  -of GTiff -projwin " + str(upperleft_x)  + " " + str(upperleft_y)  + " " + str(lowerright_x)  + " " + str(lowerright_y)  + " " + destinationfile2 + " " +  destinationfile3)
+                
+            #Convert to JPG
+            print
+            print "create jpeg scene"
+            print
+            os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile3 + " " +  jpegfile3) 
+        else:
+            
+            #Convert to JPG
+            print
+            print "create jpeg scene"
+            print
+            os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
         #os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
@@ -238,7 +315,11 @@ def ProcessNest(radarsatfile):
         #os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
     
         #Remove original GeoTIFF in 3033 since we now have 3575        
-        os.remove(destinationfile)
+        try:
+            os.remove(destinationfile)
+        except:
+            pass
+        
         #os.remove(auxfile)
     
     #Remove BEAM-DIMAP files from NEST      
@@ -255,37 +336,87 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-filelist = glob.glob(r'G:\satellittdata\flerbrukBarents\RS2*.zip')
+inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2013'
+outputfilepath = 'G:\\FramstraitExtract'
+
+filelist = []
+for root, dirnames, filenames in os.walk(inputfilepath):
+  for filename in fnmatch.filter(filenames, '*.zip'):
+      filelist.append(os.path.join(root, filename))
 
 
 #Define Area Of Interest
-upperleft_x = 8000.0
-upperleft_y = -1010000.0
-lowerright_x = 350000.0
-lowerright_y = -1495000.0
+upperleft_x =  -380000.0
+upperleft_y =  -1000000.0
+lowerright_x = -220000.0
+lowerright_y = -1160000.0
 
+#upperleft_x =  -140176.0
+#upperleft_y =  -1030805.0
+#lowerright_x = -8347.0
+#lowerright_y = -1150981.0
+
+# IF NO IMAGE SUBSETTING, LEAVE location = []
+#location =[]
 location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
 
 #Loop through filelist and process
 for radarsatfile in filelist:
     
-    #Create Quicklook from which area is determined (not very good solution)
-    outputfile = RadarsatDetailedQuicklook(radarsatfile)
+    #Check if quicklook exists and contains area
+    #Get Filename of corresponding quicklook for radarsatfile
+    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
+    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
+   
+    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
+    existingquicklook2 = radarsatfilepath + '//' + radarsatfileshortname + '_EPSG3575.tif'
+    
+    
+    contained = False
+    #check if quicklook exists
+    if ( os.path.exists(existingquicklook) & (location != [])):
+        print        
+        print "quicklook exists"
+        print 
+        contained = CheckExistingQuicklook(radarsatfile, location)
+    elif( os.path.exists(existingquicklook2) & (location != [])):
+        print "old quicklook exists"
+               
+        contained = CheckLocation(radarsatfile, location)
+    elif (location != []):
+        #Create Quicklook from which area is determined (not very good solution)
+        print 
+        print "quicklook to be created"
+        print 
+        outputfile = CreateQuicklook(radarsatfile)
+        if outputfile == None:
+            continue
+    
+        contained = ExtractRadarsat(radarsatfile, location)
+       
     
     #Check if file contains parts of Area Of Interest
     #contained = ExtractRadarsat(radarsatfile, location)
     
     #If not within Area Of Interest
-    #if contained == False:
-    #    continue
-    #    print radarsatfile + ' skipped'
+    if ((location != []) & (contained == False)):
+        print         
+        print radarsatfile + ' skipped'    
+        print 
+        continue
+        
+    print 
+    print 'Processing ', radarsatfile 
+    print 
     
-    print radarsatfile + ' processed'
     #Process image
-    ProcessNest(radarsatfile)
+    ProcessNest(radarsatfile, outputfilepath, location)
     
     #Remove quicklook as jpeg no available
-    os.remove(outputfile)
+    #try:
+    #    os.remove(outputfile)
+    #except:
+    #    pass
 
 print 'finished extracting Barents images'
 

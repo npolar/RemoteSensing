@@ -66,7 +66,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <wktFile/>
-      <crs>PROJCS[&quot;WGS 84 / Australian Antarctic Lambert&quot;, &#xd;
+      <crs>PROJCS[&quot;WGS 84 / Antarctic Polar Stereographic&quot;, &#xd;
   GEOGCS[&quot;WGS 84&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
       SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
@@ -76,18 +76,15 @@
     AXIS[&quot;Geodetic longitude&quot;, EAST], &#xd;
     AXIS[&quot;Geodetic latitude&quot;, NORTH], &#xd;
     AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
-  PROJECTION[&quot;Lambert_Conformal_Conic_2SP&quot;, AUTHORITY[&quot;EPSG&quot;,&quot;9802&quot;]], &#xd;
-  PARAMETER[&quot;central_meridian&quot;, 70.0], &#xd;
-  PARAMETER[&quot;latitude_of_origin&quot;, -50.0], &#xd;
-  PARAMETER[&quot;standard_parallel_1&quot;, -68.5], &#xd;
-  PARAMETER[&quot;false_easting&quot;, 6000000.0], &#xd;
-  PARAMETER[&quot;false_northing&quot;, 6000000.0], &#xd;
-  PARAMETER[&quot;scale_factor&quot;, 1.0], &#xd;
-  PARAMETER[&quot;standard_parallel_2&quot;, -74.5], &#xd;
+  PROJECTION[&quot;Polar Stereographic (variant B)&quot;, AUTHORITY[&quot;EPSG&quot;,&quot;9829&quot;]], &#xd;
+  PARAMETER[&quot;central_meridian&quot;, 0.0], &#xd;
+  PARAMETER[&quot;Standard_Parallel_1&quot;, -71.0], &#xd;
+  PARAMETER[&quot;false_easting&quot;, 0.0], &#xd;
+  PARAMETER[&quot;false_northing&quot;, 0.0], &#xd;
   UNIT[&quot;m&quot;, 1.0], &#xd;
   AXIS[&quot;Easting&quot;, EAST], &#xd;
   AXIS[&quot;Northing&quot;, NORTH], &#xd;
-  AUTHORITY[&quot;EPSG&quot;,&quot;3033&quot;]]</crs>
+  AUTHORITY[&quot;EPSG&quot;,&quot;3031&quot;]]</crs>
       <resampling>Nearest</resampling>
       <referencePixelX/>
       <referencePixelY/>
