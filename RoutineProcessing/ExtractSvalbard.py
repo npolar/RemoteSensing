@@ -44,7 +44,7 @@ def CheckExistingQuicklook(radarsatfile, location):
     (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
        
-    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.jpg'
+    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
 
     
     #check if quicklook exists
@@ -55,8 +55,8 @@ def CheckExistingQuicklook(radarsatfile, location):
     EPSG3575 = pyproj.Proj("+init=EPSG:3575")
     EPSG32633 = pyproj.Proj("+init=EPSG:32633")
     
-    quick_upperleft_x, quick_upperleft_y = pyproj.transform(EPSG32633, EPSG3575, location[0], location[1])
-    quick_lowerleft_x, quick_lowerleft_y =pyproj.transform(EPSG32633, EPSG3575, location[2], location[3])
+    upperleft_x, upperleft_y = pyproj.transform(EPSG32633, EPSG3575, location[0], location[1])
+    lowerright_x, lowerright_y =pyproj.transform(EPSG32633, EPSG3575, location[2], location[3])
     
     #Get Corners from existing quicklook
     #Open GeoTiff Quicklook
@@ -73,12 +73,12 @@ def CheckExistingQuicklook(radarsatfile, location):
     cols = dataset.RasterXSize
     rows = dataset.RasterYSize
     #Determine extension and resolution
-    upperleft_x = geotrans[0]
-    upperleft_y = geotrans[3]
+    quick_upperleft_x = geotrans[0]
+    quick_upperleft_y = geotrans[3]
     pixelwidth = geotrans[1]
     pixelheight = geotrans[5]
-    lowerright_x = upperleft_x + pixelwidth * cols
-    lowerright_y = upperleft_y + pixelheight * rows
+    quick_lowerright_x = upperleft_x + pixelwidth * cols
+    quick_lowerright_y = upperleft_y + pixelheight * rows
     
            
     #Check if two points are contained in image

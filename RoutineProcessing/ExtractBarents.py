@@ -53,8 +53,8 @@ def CheckExistingQuicklook(radarsatfile, location):
     
     upperleft_x = location[0]
     upperleft_y = location[1]
-    lowerleft_x = location[2]
-    lowerleft_y = location[3]
+    lowerright_x = location[2]
+    lowerright_y = location[3]
     
     #Get Corners from existing quicklook
     #Open GeoTiff Quicklook
