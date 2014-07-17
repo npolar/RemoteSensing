@@ -3,12 +3,18 @@
 Created on Mon Jul 14 07:19:33 2014
 
 @author: max
+Reads AMSR2 files into the NSIDC raster
+
+
 """
 import xml.etree.cElementTree as ET
-import gdal, glob, gzip, os, shutil, sys, pyproj
+import gdal, glob, gzip, os, shutil, sys, pyproj, datetime
+
 
 def UnzipAMSR(AMSRzipfile):
-        
+    '''
+    unzips the AMSRzipfile
+    '''    
     #Various file paths and names:    
     (AMSRzipfilepath, AMSRzipfilename) = os.path.split(AMSRzipfile)             
     (AMSRzipfileshortname, extension) = os.path.splitext(AMSRzipfilename) 
@@ -24,18 +30,19 @@ def UnzipAMSR(AMSRzipfile):
 
 
 
-def AMSRtoCSV(AMSRzipfile):
+def AMSRtoCSV(csv_filename, AMSRzipfile):
     '''
     converts AMSR raster to csv
     '''
     (AMSRzipfilepath, AMSRzipfilename) = os.path.split(AMSRzipfile)             
     (AMSRzipfileshortname, extension) = os.path.splitext(AMSRzipfilename)
     
-    AMSRcsv = outfilepath + AMSRzipfileshortname[:-3] + '.csv'
     
+    #Open the hdf file and get subdatasets
     HDFfile = gdal.Open(AMSRzipfilepath + '\\' + AMSRzipfileshortname )
     HDF_bands = HDFfile.GetSubDatasets()
     
+    #Open the needed subdatasets, are opened just like a file, are not bands
     HDF_Br89AH = gdal.Open(HDF_bands[13][0])
     HDF_Br89AH_array = HDF_Br89AH.ReadAsArray()
     
@@ -54,14 +61,26 @@ def AMSRtoCSV(AMSRzipfile):
     HDF_Lon89B = gdal.Open(HDF_bands[30][0])
     HDF_Lon89B_array = HDF_Lon89B.ReadAsArray()
     
-    
+    #Get cols rows -- OBS, WILL VARY FOR OTHER CHANNELS!
     cols = HDF_Br89AH.RasterXSize
     rows = HDF_Br89AH.RasterYSize
     
     print 'Convert  ', AMSRzipfileshortname, ' to csv.'    
     
-    textfile = open( AMSRcsv, 'w')
-    textfile.write('lon,lat,brightness\n')
+    #Check if csv-file exists    
+    if os.path.isfile(csv_filename):
+        exists = 1
+    else:
+        exists = 0
+    
+    #Open the csv-file, will be created if not exist
+    textfile = open( csv_filename, 'a')
+    
+    #If csv just was created, a header line will be added, otherwise not
+    if exists == 0:
+        textfile.write("lon,lat,brightness\n")
+    
+    #Loop through each pixel and write lon, lat, brightness in csv file (converted to EPSG3411) 
     for i in range(rows):
         for j in range(cols):
             
@@ -71,13 +90,14 @@ def AMSRtoCSV(AMSRzipfile):
             lonA = HDF_Lon89A_array[i,j]
             latA = HDF_Lat89A_array[i,j]
             (lonA_3411, latA_3411) = pyproj.transform(wgs84, EPSG3411, lonA, latA)
-            brightnessA = HDF_Br89AH_array[i,j]
+            brightnessA = HDF_Br89AH_array[i,j]* 0.01 #APPLYING SCALING FACTOR!
             
             lonB = HDF_Lon89B_array[i,j]
             latB = HDF_Lat89B_array[i,j]
             (lonB_3411, latB_3411) = pyproj.transform(wgs84, EPSG3411, lonB, latB)
-            brightnessB = HDF_Br89BH_array[i,j]
+            brightnessB = HDF_Br89BH_array[i,j]* 0.01 #APPLYING SCALING FACTOR!
             
+            # only consider this latitude
             if 40 < latA < 90:
                 textfile.write(str(lonA_3411) + ',' + str(latA_3411) + ',' + str(brightnessA) + '\n')
 
@@ -88,28 +108,29 @@ def AMSRtoCSV(AMSRzipfile):
     
     
     
-def CSVtoRaster(AMSRzipfile):
+def CSVtoRaster(csv_filename):
     '''
     converts CSV raster to raster
+    
+    
+    
+    
     '''
     
-    (AMSRzipfilepath, AMSRzipfilename) = os.path.split(AMSRzipfile)             
-    (AMSRzipfileshortname, extension) = os.path.splitext(AMSRzipfilename)
+    (csv_filenamepath, filename) = os.path.split(csv_filename)             
+    (csv_filename_shortname, extension) = os.path.splitext(filename)
+
          
-    AMSRcsv_shortname = AMSRzipfileshortname[:-3]
-    AMSRcsv = outfilepath + AMSRzipfileshortname[:-3] + '.csv'
-    
-    AMSRcsv_vrt = outfilepath + AMSRzipfileshortname[:-3] + '.vrt'
-    AMSRcsv_tif = outfilepath + AMSRzipfileshortname[:-3] + '.tif'
+    AMSRcsv_vrt = csv_filenamepath + '\\' + csv_filename_shortname + '.vrt'    
     ##############################
     #Create the necessary XML file
     ##############################
     root = ET.Element("OGRVRTDataSource")
     OGRVRTLayer  = ET.SubElement(root, "OGRVRTLayer")
-    OGRVRTLayer.set("name", AMSRcsv_shortname)
+    OGRVRTLayer.set("name", csv_filename_shortname)
     
     SrcDataSource = ET.SubElement(OGRVRTLayer, "SrcDataSource")
-    SrcDataSource.text = AMSRcsv
+    SrcDataSource.text = csv_filename
     
     GeometryType = ET.SubElement(OGRVRTLayer, "GeometryType")
     GeometryType.text = "wkbPoint"
@@ -130,20 +151,14 @@ def CSVtoRaster(AMSRzipfile):
     print "Convert csv to raster."
     
     
-    AMSR_tif = outfilepath + AMSRzipfileshortname[:-3] + '.tif'
+    AMSR_tif = outfilepath + csv_filename_shortname + '.tif'
     
-    # First version gives X: 3168 Y: 1550 Bands: 1 with Pixel Size 0.113478,-0.113405
-    # for all world
-    # For 89A and 89B double resolution, so try 0.056739
-    # (90-0) / 0.056739 = 1586 -- 
-    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=5000:radius2=5000:min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize 1520 2240 -l ' + AMSRcsv_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
+    # Extent of NSIDC grid, outsize determines resolution
+    #  5km => -outsize 1520 2240
+    # 10km =>
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
     
-#    
-
-    
-    
-    
-    
+ 
 
 
     
@@ -152,17 +167,47 @@ def CSVtoRaster(AMSRzipfile):
 ###   Core of Program follows here ###
 
 ##############################################################################
-
 outfilepath = 'C:\\Users\\max\\Documents\\AMSR\\'
-filelist = glob.glob(r'C:\Users\max\Documents\AMSR\GW1AM2_201301010158_201D_L1SGBTBR_1110110*.gz')
 
-for AMSRzipfile in filelist:
+startyear = 2013
+endyear = 2013
+
+startday = 1
+startmonth = 1
+
+endday = 31
+endmonth = 1
+
+startdate =  datetime.date(startyear, startmonth, startday)
+enddate =  datetime.date(endyear, endmonth, endday)
+diff = datetime.timedelta(days = 1)
+
+#initiate workingdate
+workingdate = startdate
+
+
+while workingdate != (enddate + diff):
+    #Create filelist with all files having the same date, e.g. 20130101
+    searchstring = 'C:\Users\max\Documents\AMSR\GW1AM2_' + str(workingdate.strftime("%Y%m%d")) + '*.gz'
+    filelist = glob.glob(searchstring)
     
-    UnzipAMSR(AMSRzipfile)
-    AMSRtoCSV(AMSRzipfile)
-    CSVtoRaster(AMSRzipfile)
+    #Process AMSR with this filelist
+    for AMSRzipfile in filelist:
     
+        UnzipAMSR(AMSRzipfile)
+        csv_filename = 'C:\Users\max\Documents\AMSR\GW1AM2_' + str(workingdate.strftime("%Y%m%d")) + '.csv'
+        # AMSR is converted to csv and appended to one csv file from the same month
+        # make sure that "a" is selected in AMSRtoCSV
+        AMSRtoCSV(csv_filename, AMSRzipfile)
     
+    # csv is rasterized for all files from one month
+    CSVtoRaster(csv_filename) 
+    #os.remove(csv_filename) #Remove the very big csv-file
+    # Go to next day and repeat while loop
+    workingdate = workingdate + diff
+    print ' Now processing ', workingdate
+    
+     
 print 'Done ReadAMSR.py'
 
       
