@@ -240,9 +240,9 @@ diff = datetime.timedelta(days = 1)
 
 for AMSRzipfile in filelist:
     print 'AMSRzipfile'
-    #UnzipAMSR(AMSRzipfile)
-    #AMSRtoCSV(AMSRzipfile)
-    #CSVtoRaster(AMSRzipfile)
+    UnzipAMSR(AMSRzipfile)
+    AMSRtoCSV(AMSRzipfile)
+    CSVtoRaster(AMSRzipfile)
     
 AverageDaily(startdate, enddate, diff)    
 print 'Done ReadAMSR.py'
