@@ -153,12 +153,23 @@ def CSVtoRaster(csv_filename):
     
     AMSR_tif = outfilepath + csv_filename_shortname + '.tif'
     
+    AMSR_quart1_3411_tif = outfilepath + 'quart1_3411.tif'
+    AMSR_quart2_3411_tif = outfilepath + 'quart2_3411.tif'
+    AMSR_quart3_3411_tif = outfilepath + 'quart3_3411.tif'
+    AMSR_quart4_3411_tif = outfilepath + 'quart4_3411.tif'
+    
     # Extent of NSIDC grid, outsize determines resolution
     #  5km => -outsize 1520 2240
     # 10km =>
-    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
+    #os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
     
- 
+    
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -3850000 0 -tye 0 5850000 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_quart1_3411_tif)
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe 0 3750000 -tye 0 5850000 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_quart1_3411_tif)
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -3850000 0 -tye -5350000 0 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_quart1_3411_tif)
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=4000:radius2=4000:min_points=1 -txe -0 3750000 -tye -5350000 0 -outsize 1520 2240 -l ' + csv_filename_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_quart1_3411_tif)
+    
+    os.system('gdal_merge.py -tap -n 0 -o ' + AMSR_tif + ' ' + AMSR_quart1_3411_tif + ' ' + AMSR_quart2_3411_tif + ' ' + AMSR_quart3_3411_tif + ' ' + AMSR_quart4_3411_tif)
 
 
     
