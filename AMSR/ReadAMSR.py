@@ -5,7 +5,7 @@ Created on Mon Jul 14 07:19:33 2014
 @author: max
 """
 import xml.etree.cElementTree as ET
-import gdal, gdalconst, glob, gzip, numpy, os, shutil, sys, pyproj, datetime
+import gdal, gdalconst, glob, gzip, numpy, os, osr, shutil, sys, pyproj, datetime
 
 def UnzipAMSR(AMSRzipfile, outfilepath):
     '''
@@ -221,26 +221,45 @@ def CSVtoRaster(AMSRzipfile, outfilepath, frequency, polarization):
     if frequency == "36_5":
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
     elif frequency == "6_9":
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
     elif frequency == "7_3":
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
     elif frequency == "10_7":
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
     elif frequency == "18_7":
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
     elif frequency == "23_8": 
         radius1 = 7000
         radius2 = 7000
+        xsize = 760 
+        ysize = 1120
+    elif frequency == "89":
+        radius1 = 4000
+        radius2 = 4000
+        xsize = 1520 
+        ysize = 2240
     else:
         radius1 = 4000
         radius2 = 4000
+        xsize = 1520 
+        ysize = 2240
     
-    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=' + str(radius1) + ':radius2=' + str(radius2) + ':min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize 760 1120 -l ' + AMSRcsv_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
+    os.system('gdal_grid -a_srs EPSG:3411 -a average:radius1=' + str(radius1) + ':radius2=' + str(radius2) + ':min_points=1 -txe -3850000 3750000 -tye -5350000 5850000 -outsize '+  xsize + ' ' + ysize + ' -l ' + AMSRcsv_shortname + ' '  + AMSRcsv_vrt + ' ' + AMSR_tif)
     
     # Set Projection -- was not in file with gdal_grid    
     outfile = gdal.Open(AMSR_tif, gdalconst.GA_Update)
@@ -273,7 +292,7 @@ def AverageDaily(startdate, enddate, diff, outfilepath, frequency, polarization)
     
     while workingdate != (enddate + diff):
         #Create filelist with all files having the same date, e.g. 20130101
-        searchstring = outfilepath + 'GW1AM2_' + str(workingdate.strftime("%Y%m%d")) + '_channel' + str(frequency) + polarization + '*.tif'
+        searchstring = outfilepath + 'GW1AM2_' + str(workingdate.strftime("%Y%m%d")) + '*_channel' + str(frequency) + polarization + '.tif'
         AMSR_dailyaverage_name = outfilepath + 'GW1AM2_dailyaverage_' + str(workingdate.strftime("%Y%m%d")) + '_channel' + str(frequency) + polarization + '.tif'
         filelist = glob.glob(searchstring)
         
@@ -345,8 +364,8 @@ outraster = None
 
 ##############################################################################
 
-outfilepath = 'G:\\AMSR\\test\\'
-filelist = glob.glob(r'U:\AMSR2\L1R\*.gz')
+outfilepath = 'G:\\AMSR\\'
+inputfilepath = 'U:\\AMSR2\\L1R\\'
 
 startyear = 2013
 endyear = 2013
@@ -361,6 +380,21 @@ startdate =  datetime.date(startyear, startmonth, startday)
 enddate =  datetime.date(endyear, endmonth, endday)
 diff = datetime.timedelta(days = 1)
     
+    
+#Create filelist including all files for the given month between startyear and stopyear inclusive
+#initiate workingdate
+filelist = []
+workingdate = startdate
+
+while workingdate != (enddate + diff):
+    file_searchstring = 'GW1AM2_' + str(workingdate.strftime("%Y%m%d"))  + '*.gz'
+    foldersearchstring = inputfilepath + file_searchstring
+    filelist.extend(glob.glob(foldersearchstring))
+    workingdate = workingdate + diff
+
+
+
+
 #########################################
 ## Calculate 89GHz
 #########################################
@@ -387,8 +421,8 @@ for AMSRzipfile in filelist:
     CSVtoRaster(AMSRzipfile, outfilepath, frequency, polarization)
 
 #Create average daily file for 89GHz and both polarizations    
-AverageDaily(startdate, enddate, diff, outfilepath, frequency=89, polarization='H') 
-AverageDaily(startdate, enddate, diff, outfilepath, frequency=89, polarization='V') 
+AverageDaily(startdate, enddate, diff, outfilepath, frequency='89', polarization='H') 
+AverageDaily(startdate, enddate, diff, outfilepath, frequency='89', polarization='V') 
 
 #######################################
 ## Calculate low res channels
@@ -409,7 +443,6 @@ for AMSRzipfile in filelist:
         channel = channellistH[key]
         AMSRtoCSV_lowres(AMSRzipfile, outfilepath, channel, frequency, polarization)
         CSVtoRaster(AMSRzipfile, outfilepath, frequency, polarization)
-
 for key in channellistH:
     frequency = key
     channel = channellistH[key]
