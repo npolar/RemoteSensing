@@ -101,7 +101,12 @@ def CreateQuicklook(radarsatfile):
     (infileshortname, extension) = os.path.splitext(infilename)
     
     #Open zipfile
-    zfile = zipfile.ZipFile(radarsatfile, 'r')
+    try:
+        zfile = zipfile.ZipFile(radarsatfile, 'r')
+    except:
+        outputfilename = None
+        return outputfilename
+    
     print    
     print "Decompressing image for " + infilename + " on " + infilepath    
     print
@@ -209,7 +214,10 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
 
     #Extract the zipfile
-    zfile = zipfile.ZipFile(radarsatfile, 'r')
+    try:
+        zfile = zipfile.ZipFile(radarsatfile, 'r')
+    except:
+        return
     print    
     print "Decompressing image for " + radarsatfilename + " on " + radarsatfilepath    
     
@@ -226,7 +234,8 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     #check that xml file is correct!
     
     #Process using NEST
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -284,8 +293,8 @@ def ProcessNest(radarsatfile, outputfilepath, location):
             
             upperleft_x = location[0]
             upperleft_y = location[1]
-            lowerleft_x = location[2]
-            lowerleft_y = location[3]       
+            lowerright_x = location[2]
+            lowerright_y = location[3]       
             os.system("gdal_translate -a_srs EPSG:3575 -stats  -of GTiff -projwin " + str(upperleft_x)  + " " + str(upperleft_y)  + " " + str(lowerright_x)  + " " + str(lowerright_y)  + " " + destinationfile2 + " " +  destinationfile3)
                 
             #Convert to JPG
@@ -302,17 +311,17 @@ def ProcessNest(radarsatfile, outputfilepath, location):
             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
-        #os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
-        #os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
-        #os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
-        #os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
-        #os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
+        os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
+        os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
+        os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
+        os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
-        #os.system("gdal_translate -ot Int16 -co COMPRESS=DEFLATE -co PREDICTOR=2 -co ZLEVEL=9 -outsize 40% 40% -of GTiff " + destinationfile2 + " " + tiffsmallfile)
-        #os.system("gdal_translate -outsize 10% 10%  -of GTiff " + destinationfile2 + " " + tiffsmallfile2)
-        #os.system("gdal_translate -outsize 20% 20%  -of GTiff " + destinationfile2 + " " + tiffsmallfile3)
-        #os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
+        os.system("gdal_translate -ot Int16 -co COMPRESS=DEFLATE -co PREDICTOR=2 -co ZLEVEL=9 -outsize 40% 40% -of GTiff " + destinationfile2 + " " + tiffsmallfile)
+        os.system("gdal_translate -outsize 10% 10%  -of GTiff " + destinationfile2 + " " + tiffsmallfile2)
+        os.system("gdal_translate -outsize 20% 20%  -of GTiff " + destinationfile2 + " " + tiffsmallfile3)
+        os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
     
         #Remove original GeoTIFF in 3033 since we now have 3575        
         try:
@@ -336,29 +345,39 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 
 # Define filelist to be processed (radarsat zip files)
-inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2013'
-outputfilepath = 'G:\\FramstraitExtract'
+#inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2014'
+#outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2014'
+#outputfilepath = 'G:\\FramstraitExtract'
+
+inputfilepath = 'G:\\satellittdata\\flerbrukBarents'
+outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
+
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):
-  for filename in fnmatch.filter(filenames, '*.zip'):
+  for filename in fnmatch.filter(filenames, 'RS2_20140818*.zip'):
       filelist.append(os.path.join(root, filename))
 
 
 #Define Area Of Interest
-upperleft_x =  -380000.0
-upperleft_y =  -1000000.0
-lowerright_x = -220000.0
-lowerright_y = -1160000.0
+#upperleft_x =  -380000.0
+#upperleft_y =  -1000000.0
+#lowerright_x = -220000.0
+#lowerright_y = -1160000.0
 
-#upperleft_x =  -140176.0
-#upperleft_y =  -1030805.0
-#lowerright_x = -8347.0
-#lowerright_y = -1150981.0
+#upperleft_x =  -140000.0
+#upperleft_y =  -1031000.0
+#lowerright_x = -8400.0
+#lowerright_y = -1162600.0
+
+upperleft_x =  -464400.0
+upperleft_y =  -1075577.0
+lowerright_x = -259600.0
+lowerright_y = -1280377.0
 
 # IF NO IMAGE SUBSETTING, LEAVE location = []
-#location =[]
-location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
+location =[]
+#location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
 
 #Loop through filelist and process
 for radarsatfile in filelist:
@@ -392,7 +411,7 @@ for radarsatfile in filelist:
         if outputfile == None:
             continue
     
-        contained = ExtractRadarsat(radarsatfile, location)
+        contained = CheckLocation(radarsatfile, location)
        
     
     #Check if file contains parts of Area Of Interest
