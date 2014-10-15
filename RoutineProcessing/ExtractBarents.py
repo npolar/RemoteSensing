@@ -210,7 +210,14 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
         
     #Define names of input and outputfile
-    gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
+        
+    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
+        gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
+        nestfilename = 'Calib_Spk_TC_LinDB_Barents.xml'
+    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
+        gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
+        nestfilename = 'Calib_Spk_TC_LinDB_Sentinel.xml'
+  
     outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
 
     #Extract the zipfile
@@ -235,7 +242,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     
     #Process using NEST
     #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\\' + nestfilename + ' -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -349,13 +356,14 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 #outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2014'
 #outputfilepath = 'G:\\FramstraitExtract'
 
-inputfilepath = 'G:\\satellittdata\\flerbrukBarents'
-outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
-
+#inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
+#outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
+inputfilepath = 'C:\\Users\\max\\Documents\\temp'
+outputfilepath  = 'C:\\Users\\max\\Documents\\temp'
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):
-  for filename in fnmatch.filter(filenames, 'RS2_20140818*.zip'):
+  for filename in fnmatch.filter(filenames, '*.zip'):
       filelist.append(os.path.join(root, filename))
 
 
