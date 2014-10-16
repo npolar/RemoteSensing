@@ -7,7 +7,7 @@ import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
 
 
     
-def CreateQuicklook(radarsatfile, outputfilepath, location):
+def CreateQuicklook(radarsatfile, outputfilepath):
     '''
 
     '''
@@ -48,12 +48,8 @@ def CreateQuicklook(radarsatfile, outputfilepath, location):
     #check that xml file is correct!
     
     #Process using NEST
-    #os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_Barents.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\\' + nestfilename + ' -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
-    #Remove folder where extracted and temporary files are stored
-    #shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
-
     #Close zipfile
     zfile.close()
     
@@ -93,9 +89,11 @@ def CreateQuicklook(radarsatfile, outputfilepath, location):
         print
         print "create jpeg scene"
         print
-        os.system("gdal_translate -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        if radarsatfileshortname[0:3] == 'RS2':
+             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
-    
+        if radarsatfileshortname[0:2] == 'S1': 
+            os.system("gdal_translate -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         #Remove original GeoTIFF in 3033 since we now have 3575        
         try:
             os.remove(destinationfile)
@@ -159,13 +157,8 @@ for radarsatfile in filelist:
     print 
     
     #Process image
-    CreateQuicklook(radarsatfile, outputfilepath, location)
+    CreateQuicklook(radarsatfile, outputfilepath)
     
-    #Remove quicklook as jpeg no available
-    #try:
-    #    os.remove(outputfile)
-    #except:
-    #    pass
 
 print 'finished Creating Quicklooks'
 
