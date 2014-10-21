@@ -4,6 +4,7 @@ Creates Quicklooks from zipped Sentinel-1 or Radarsat-2 files
 """
 
 import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
+import Tkinter, tkFileDialog
 
 
     
@@ -17,17 +18,17 @@ def CreateQuicklook(radarsatfile, outputfilepath):
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
         
     #Define names of input and outputfile
-        
+    #Check if file is Sentinel or Radarsat and use correct NEST file
     if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
         gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-        nestfilename = 'Spk_reproj_Barents.xml'
+        nestfilename = 'Calib_Spk_reproj_LinDB_Barents.xml'
     if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
         gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
         nestfilename = 'Spk_reproj_Barents.xml'
   
     outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
 
-    #Extract the zipfile
+    #Extract the zipfile, skip if corrupt
     try:
         zfile = zipfile.ZipFile(radarsatfile, 'r')
     except:
@@ -61,16 +62,22 @@ def CreateQuicklook(radarsatfile, outputfilepath):
     (outputfilenamepath, outputfilename) =  os.path.split(outputfile)
     (outputfileshortname, extension) = os.path.splitext(outputfilename)
     dim_datafolder = outputfilenamepath + '//' + outputfileshortname + '.data'
-    dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Amplitude*.img'
+    if radarsatfileshortname[0:3] == 'RS2':
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
+    if radarsatfileshortname[0:2] == 'S1':  #Once Sentinel can be calibrated, both will be Sigma*.img
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Amplitude*.img'
     dimlist = glob.glob(dim_datafile)
     
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
-        polarisation = envifile[-6:-4]
-        destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_temp.tif'
+        if radarsatfileshortname[0:3] == 'RS2':
+            polarisation = envifile[-9:-7]
+        if radarsatfileshortname[0:2] == 'S1':    
+            polarisation = envifile[-6:-4]
+        
         #auxfile is created automatically by NEST, name defined to remove it       
         auxfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif.aux.xml'
-        destinationfile2 = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
+        destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
         jpegfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
 
 
@@ -80,21 +87,23 @@ def CreateQuicklook(radarsatfile, outputfilepath):
         print '\nto ' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
         
  
-        os.system("gdal_translate -a_srs EPSG:3575 -stats -of GTiff  " + envifile + " " +  destinationfile2)
+        os.system("gdal_translate -a_srs EPSG:3575 -stats -of GTiff  " + envifile + " " +  destinationfile)
                     
         
 
             
         #Convert to JPG
+        #SCALING MAY NEED TO BE ADJUSTED WHEN NEST FILE CHANGES
         print
         print "create jpeg scene"
         print
         if radarsatfileshortname[0:3] == 'RS2':
-             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
         
         if radarsatfileshortname[0:2] == 'S1': 
-            os.system("gdal_translate -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
-        #Remove original GeoTIFF in 3033 since we now have 3575        
+            os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
+        
+        #Clean up temp files
         try:
             os.remove(destinationfile)
         except:
@@ -104,12 +113,8 @@ def CreateQuicklook(radarsatfile, outputfilepath):
             os.remove(auxfile)
         except:
             pass
-        
-        try:
-            os.remove(destinationfile2)
-        except:
-            pass
-    #Remove BEAM-DIMAP files from NEST      
+
+    #Clean up temp files    
     
     try:
         shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname + '.SAFE')
@@ -134,8 +139,16 @@ def CreateQuicklook(radarsatfile, outputfilepath):
 
 
 # Define filelist to be processed (radarsat zip files)
-inputfilepath =  'G:\\satellittdata\\flerbrukBarents'
-outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
+
+root = Tkinter.Tk()
+root.withdraw() #use to hide tkinter window
+
+currdir = os.getcwd()
+inputfilepath = tkFileDialog.askdirectory(parent=root, initialdir=currdir, title='Please select a input directory')
+outputfilepath = tkFileDialog.askdirectory(parent=root, initialdir=currdir, title='Please select a output directory')
+    
+#inputfilepath =  'G:\\satellittdata\\flerbrukBarents'
+#outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):

@@ -42,8 +42,11 @@ def CheckExistingQuicklook(radarsatfile, location):
     #Get Filename of corresponding quicklook for radarsatfile
     (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
-       
-    existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
+    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
+        existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
+    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
+        existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
+    
 
     
     #check if quicklook exists
@@ -89,52 +92,124 @@ def CheckExistingQuicklook(radarsatfile, location):
             print 'Found match: ', radarsatfile 
     return contained
 
-def CreateQuicklook(radarsatfile):
+def CreateQuicklook(radarsatfile, outputfilepath):
     '''
-    Takes the Radarsat-2 zipfile and creates a map projected quicklook from 
-    the imagery_HH file
+
     '''
-    
-    
-    #Split names and extensions
-    (infilepath, infilename) = os.path.split(radarsatfile)
-    (infileshortname, extension) = os.path.splitext(infilename)
-    
-    #Open zipfile
+            
+    #Various file paths and names:    
+    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)             
+    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
+        
+    #Define names of input and outputfile
+    #Check if file is Sentinel or Radarsat and use correct NEST file
+    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
+        gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
+        nestfilename = 'Calib_Spk_reproj_LinDB_Barents.xml'
+    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
+        gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
+        nestfilename = 'Spk_reproj_Barents.xml'
+  
+    outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
+
+    #Extract the zipfile, skip if corrupt
     try:
         zfile = zipfile.ZipFile(radarsatfile, 'r')
     except:
-        outputfilename = None
-        return outputfilename
-    
+        return
     print    
-    print "Decompressing image for " + infilename + " on " + infilepath    
+    print "Decompressing image for " + radarsatfilename + " on " + radarsatfilepath    
+    
+    zfile.extractall(radarsatfilepath)
+    
+    #Call NEST routine
     print
-    #Extract imagery file from zipfile
-    try:
-        zfile.extractall(infilepath)
-    except:
-        outputfilename = None
-        return outputfilename
-    
-    #Define names
-    gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
-    outputfilename = infilepath + '\\' + infileshortname + '_EPSG3575.tif'
-    
-    #Call gdalwarp
+    print "NEST Processing"
     print
-    print "map projecting file"
+    print "inputfile " + radarsatfileshortname
+    print "outputfile " + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
     print
-    os.system('gdalwarp -tps  -t_srs \"+proj=laea +lat_0=90 +lon_0=10 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs\" ' + gdalsourcefile + ' ' + outputfilename )  
+      
+    #check that xml file is correct!
     
-    
-    #Remove folder where extracted and temporary files are stored
-    shutil.rmtree(infilepath + '\\' + infileshortname )
+    #Process using NEST
+    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\\' + nestfilename + ' -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Close zipfile
     zfile.close()
     
-    return outputfilename
+    #############################################
+    # Convert DIM to GEOTIFF and JPEG
+    #############################################
+
+    #Get *.img files in dim-folder
+    (outputfilenamepath, outputfilename) =  os.path.split(outputfile)
+    (outputfileshortname, extension) = os.path.splitext(outputfilename)
+    dim_datafolder = outputfilenamepath + '//' + outputfileshortname + '.data'
+    if radarsatfileshortname[0:3] == 'RS2':
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
+    if radarsatfileshortname[0:2] == 'S1':  #Once Sentinel can be calibrated, both will be Sigma*.img
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Amplitude*.img'
+    dimlist = glob.glob(dim_datafile)
+    
+    #Loop through Sigma*.img files and convert to GeoTIFF and JPG
+    for envifile in dimlist:
+        if radarsatfileshortname[0:3] == 'RS2':
+            polarisation = envifile[-9:-7]
+        if radarsatfileshortname[0:2] == 'S1':    
+            polarisation = envifile[-6:-4]
+        
+        #auxfile is created automatically by NEST, name defined to remove it       
+        auxfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif.aux.xml'
+        destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
+        jpegfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
+
+
+        print
+        print 'Converting to GeoTIFF: '
+        print '\nfrom ' + envifile
+        print '\nto ' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
+        
+ 
+        os.system("gdal_translate -a_srs EPSG:3575 -stats -of GTiff  " + envifile + " " +  destinationfile)
+                    
+        
+
+            
+        #Convert to JPG
+        #SCALING MAY NEED TO BE ADJUSTED WHEN NEST FILE CHANGES
+        print
+        print "create jpeg scene"
+        print
+        if radarsatfileshortname[0:3] == 'RS2':
+             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
+        
+        if radarsatfileshortname[0:2] == 'S1': 
+            os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
+        
+        #Clean up temp files
+        
+        try:
+            os.remove(auxfile)
+        except:
+            pass
+
+    #Clean up temp files    
+    
+    try:
+        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname + '.SAFE')
+    except:
+        pass
+
+    try:
+        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
+    except:
+        pass   
+    
+    shutil.rmtree(dim_datafolder)
+    os.remove(outputfile)
+    
+    print   
     
 def CheckLocation(radarsatfile, location):
     '''
@@ -245,7 +320,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\\' + nestfilename + ' -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     
     #Remove folder where extracted and temporary files are stored
-    shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
+    #shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
 
     #Close zipfile
     zfile.close()
@@ -258,12 +333,19 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     (outputfilenamepath, outputfilename) =  os.path.split(outputfile)
     (outputfileshortname, extension) = os.path.splitext(outputfilename)
     dim_datafolder = outputfilenamepath + '//' + outputfileshortname + '.data'
-    dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
+    if radarsatfileshortname[0:3] == 'RS2':
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
+    if radarsatfileshortname[0:2] == 'S1':  #Once Sentinel can be calibrated, both will be Sigma*.img
+        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Amplitude*.img'
     dimlist = glob.glob(dim_datafile)
     
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
-        polarisation = envifile[-9:-7]
+        if radarsatfileshortname[0:3] == 'RS2':
+            polarisation = envifile[-9:-7]
+        if radarsatfileshortname[0:2] == 'S1':    
+            polarisation = envifile[-6:-4]
+            
         destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '_temp.tif'
         #auxfile is created automatically by NEST, name defined to remove it       
         auxfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif.aux.xml'
@@ -302,33 +384,45 @@ def ProcessNest(radarsatfile, outputfilepath, location):
             upperleft_y = location[1]
             lowerright_x = location[2]
             lowerright_y = location[3]       
-            os.system("gdal_translate -a_srs EPSG:3575 -stats  -of GTiff -projwin " + str(upperleft_x)  + " " + str(upperleft_y)  + " " + str(lowerright_x)  + " " + str(lowerright_y)  + " " + destinationfile2 + " " +  destinationfile3)
-                
+            if radarsatfileshortname[0:3] == 'RS2':
+                os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of GTiff -projwin " + str(upperleft_x)  + " " + str(upperleft_y)  + " " + str(lowerright_x)  + " " + str(lowerright_y)  + " " + destinationfile2 + " " +  destinationfile3)
+        
+            if radarsatfileshortname[0:2] == 'S1': 
+                os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of GTiff -projwin " + str(upperleft_x)  + " " + str(upperleft_y)  + " " + str(lowerright_x)  + " " + str(lowerright_y)  + " " + destinationfile2 + " " +  destinationfile3)
+          
             #Convert to JPG
             print
             print "create jpeg scene"
             print
-            os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile3 + " " +  jpegfile3) 
+            if radarsatfileshortname[0:3] == 'RS2':
+                os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile3 + " " +  jpegfile3) 
+        
+            if radarsatfileshortname[0:2] == 'S1': 
+                os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile3 + " " +  jpegfile3) 
         else:
             
             #Convert to JPG
             print
             print "create jpeg scene"
             print
-            os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+            if radarsatfileshortname[0:3] == 'RS2':
+                os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        
+            if radarsatfileshortname[0:2] == 'S1': 
+                os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
-        os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
-        os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
-        os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
-        os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
-        os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
+        #os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        #os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
+        #os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
+        #os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
+        #os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
-        os.system("gdal_translate -ot Int16 -co COMPRESS=DEFLATE -co PREDICTOR=2 -co ZLEVEL=9 -outsize 40% 40% -of GTiff " + destinationfile2 + " " + tiffsmallfile)
-        os.system("gdal_translate -outsize 10% 10%  -of GTiff " + destinationfile2 + " " + tiffsmallfile2)
-        os.system("gdal_translate -outsize 20% 20%  -of GTiff " + destinationfile2 + " " + tiffsmallfile3)
-        os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
+        #os.system("gdal_translate -ot Int16 -co COMPRESS=DEFLATE -co PREDICTOR=2 -co ZLEVEL=9 -outsize 40% 40% -of GTiff " + destinationfile2 + " " + tiffsmallfile)
+        #os.system("gdal_translate -outsize 10% 10%  -of GTiff " + destinationfile2 + " " + tiffsmallfile2)
+        #os.system("gdal_translate -outsize 20% 20%  -of GTiff " + destinationfile2 + " " + tiffsmallfile3)
+        #os.system("gdal_translate -outsize 30% 30%  -of GTiff " + destinationfile2 + " " + tiffsmallfile4)
     
         #Remove original GeoTIFF in 3033 since we now have 3575        
         try:
@@ -338,10 +432,21 @@ def ProcessNest(radarsatfile, outputfilepath, location):
         
         #os.remove(auxfile)
     
-    #Remove BEAM-DIMAP files from NEST      
-    shutil.rmtree(dim_datafolder)
-    os.remove(outputfile)
+
+    #Clean up temp files    
     
+    try:
+        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname + '.SAFE')
+    except:
+        pass
+
+    try:
+        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
+    except:
+        pass   
+    
+    #shutil.rmtree(dim_datafolder)
+    os.remove(outputfile)
     print   
        
 
@@ -358,8 +463,11 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 #inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
 #outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
-inputfilepath = 'C:\\Users\\max\\Documents\\temp'
-outputfilepath  = 'C:\\Users\\max\\Documents\\temp'
+#inputfilepath = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October'
+#outputfilepath  = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October' 
+
+inputfilepath =  'G:\\satellittdata\\flerbrukBarents'
+outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):
