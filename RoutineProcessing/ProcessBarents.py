@@ -12,7 +12,7 @@ Created on August 2013
 Extracts Radarsat and Sentinel scenes.
 Then calibrate and project image to EPSG:3575 as GeoTIFF and JPG
 
-
+GUI recycled from https://joecodeswell.wordpress.com/tag/tkinter/
 """
 
 import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr

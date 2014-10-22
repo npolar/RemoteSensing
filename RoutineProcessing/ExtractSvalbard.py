@@ -133,7 +133,10 @@ def CreateQuicklook(radarsatfile):
     
           
     #Remove folder where extracted and temporary files are stored
-    shutil.rmtree(infilepath + '\\' + infileshortname )
+    try:
+        shutil.rmtree(infilepath + '\\' + infileshortname )
+    except:
+        pass
     
     #Close zipfile
     zfile.close()
@@ -222,7 +225,14 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
         
     #Define names of input and outputfile
-    gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
+    
+    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
+        gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
+    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
+        gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
+        
+  
+
     outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG32633.dim'
 
     #Extract the zipfile
@@ -246,7 +256,7 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
     
     #This one for Range Doppler Correction
     if resolution == 50:
-        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem50.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     elif resolution == 20:
         os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_RS2_dem20.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     elif resolution == 25:
@@ -290,7 +300,7 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
            
     shutil.rmtree(dim_datafolder)
-    #os.remove(outputfile)
+    os.remove(outputfile)
     
     print   
        
@@ -309,17 +319,18 @@ while year <= 2014:
     #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
     #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
     
-    foldername = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year) + '\\05_May'
+    foldername = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year) 
+    #outputfilepath = 'G:\\Aavatsmarkbreen'
+    outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\Austfonna'
     
     print 'check ', year, foldername
     
     filelist = []
     for root, dirnames, filenames in os.walk(foldername):
-      for filename in fnmatch.filter(filenames, '*.zip'):
+      for filename in fnmatch.filter(filenames, 'RS2_201407*.zip'):
           filelist.append(os.path.join(root, filename))
     
-    #outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\HoltedalsfonnaKongsfjorden_20meter\\2014'
-    outputfilepath = 'C:\\Users\\max\\Documents\\trash'
+
    
     
     #DEFINE AREA OF INTEREST IN EPSG:32633
@@ -329,16 +340,16 @@ while year <= 2014:
     #lowerright_y = -1495000.0
     
     #Austfonna
-    #upperleft_x = 651500.0
-    #upperleft_y =  8891000.0       
-    #lowerright_x = 740000.0        
-    #lowerright_y = 8800881.0     
+    upperleft_x = 651500.0
+    upperleft_y =  8891000.0       
+    lowerright_x = 740000.0        
+    lowerright_y = 8800881.0     
     
     #Holtedalfonne
-    upperleft_x = 419726.0
-    upperleft_y =  8812000.0       
-    lowerright_x = 475000.0        
-    lowerright_y = 8737956.0    
+    #upperleft_x = 419726.0
+    #upperleft_y =  8812000.0       
+    #lowerright_x = 475000.0        
+    #lowerright_y = 8737956.0    
     
     #Inglefieldbukta
     #upperleft_x = 564955.9196850983425975
@@ -353,6 +364,12 @@ while year <= 2014:
     #lowerright_x= 483506.7996030483045615
     #lowerright_y= 8708179.2891478203237057
     
+    #Aavatsmark
+    #upperleft_x = 430000.0
+    #upperleft_y =  8755000.0       
+    #lowerright_x = 463000.0        
+    #lowerright_y = 8710000.0  
+    
     
     location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
     
@@ -363,9 +380,9 @@ while year <= 2014:
         #resolution = 50  #for SCWA
         ###Activate if only SCNA files wanted ###
         #skip file if SCWA
-        resolution = 25
-        if 'SCWA' in radarsatfile:
-            continue
+        resolution = 50
+        #if 'SCWA' in radarsatfile:
+        #    continue
         
         #Check if quicklook exists and contains area
         #Get Filename of corresponding quicklook for radarsatfile
