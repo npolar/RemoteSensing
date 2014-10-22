@@ -19,8 +19,7 @@ import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
 from Tkinter import *
 from tkFileDialog import *
 
-value_dict = {'inputfilepath': 'G:\\satellittdata\\flerbrukBarents', 'outputfilepath': 'G:\\satellittdata\\flerbrukBarents'}
-    
+  
 def ProcessNest(radarsatfile, outputfilepath):
     '''
     Calls Nest SAR Toolbox to calibrate, map project and if wanted 
