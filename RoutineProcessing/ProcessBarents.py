@@ -9,34 +9,10 @@ Created on Tue Oct 21 09:18:01 2014
 """
 Created on August 2013
 
-Extracts Radarsat sathav scenes containing a selected point geographical point.
+Extracts Radarsat and Sentinel scenes.
 Then calibrate and project image to EPSG:3575 as GeoTIFF and JPG
 
-Steps (more details in each function):
-    
-RadarsatDetailedQuicklook
-- Creates a rough quicklook
-- subsequently only used to get coordinates and projection
-- better way for this needed in future version
 
-ExtractRadarsat
-- uses location to extract images matching a rectangle
-
-ProcessNest(svalbardlist)
-- Geocode and Process with NEST
-- Convert NEST format toGEOTIFF
-- Reprojectfrom polarstereo To3575
-- needed because NEST only can project to ESPG3575
-
-Requirements to run this code see:
-http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on-windows.html
-
-ISSUES AT PRESENT:
-- better way to get corner coordinates
-- two no data values in GeoTIFF and JPG due to reprojecting twice
-- solve NEST reprojection issue (does not do all)
-- ideally scenes containing Svalbard should be terraincorrected
-- Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
 
 import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
