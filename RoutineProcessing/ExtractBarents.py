@@ -289,6 +289,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
         gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
         nestfilename = 'Calib_Spk_TC_LinDB_Barents.xml'
+        
     if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
         gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
         nestfilename = 'Calib_Spk_TC_LinDB_Sentinel.xml'
@@ -466,8 +467,8 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 #inputfilepath = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October'
 #outputfilepath  = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October' 
 
-inputfilepath =  'G:\\satellittdata\\flerbrukBarents'
-outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
+inputfilepath =  'C:\\Users\\max\\Desktop'
+outputfilepath = 'C:\\Users\\max\\Desktop'
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):

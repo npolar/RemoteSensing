@@ -35,6 +35,62 @@ ISSUES AT PRESENT:
 
 import zipfile, glob, os, shutil, gdal, fnmatch, pyproj
 
+
+def CheckExistingQuicklook2(radarsatfile, location):
+    '''
+    check if quicklook exists and if so, if area is contained in it
+    '''
+    
+    #Get Filename of corresponding quicklook for radarsatfile
+    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
+    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
+       
+    existingworldfile = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.wld'
+
+    
+    #check if quicklook exists
+    if (not os.path.exists(existingworldfile)):
+        return
+    
+    upperleft_x = 1
+    upperleft_y =2
+    lowerright_x = 3
+    lowerright_y = 4
+    
+    
+    #Get Corners from existing quicklook
+    #Open GeoTiff Quicklook
+    driver = gdal.GetDriverByName('GTiff')
+    driver.Register()
+    dataset = gdal.Open(existingquicklook, gdal.GA_ReadOnly)
+    
+    contained = False     
+    if dataset == None:
+        return contained
+    
+    #Get Geoinformation
+    geotrans = dataset.GetGeoTransform()
+    cols = dataset.RasterXSize
+    rows = dataset.RasterYSize
+    #Determine extension and resolution
+    quick_upperleft_x = geotrans[0]
+    quick_upperleft_y = geotrans[3]
+    pixelwidth = geotrans[1]
+    pixelheight = geotrans[5]
+    quick_lowerright_x = upperleft_x + pixelwidth * cols
+    quick_lowerright_y = upperleft_y + pixelheight * rows
+    
+           
+    #Check if two points are contained in image
+    contained = False
+    print quick_upperleft_x , upperleft_x , quick_lowerright_x, quick_upperleft_x , lowerright_x  , quick_lowerright_x
+    print quick_upperleft_y , upperleft_y , quick_lowerright_y, quick_upperleft_y , lowerright_y, quick_lowerright_y
+    if ((quick_upperleft_x < upperleft_x < quick_lowerright_x) and (quick_upperleft_x < lowerright_x  < quick_lowerright_x)):
+        if ((quick_upperleft_y >   upperleft_y > quick_lowerright_y) and (quick_upperleft_y >  lowerright_y > quick_lowerright_y)):
+            contained = True   
+            print radarsatfile + ' matches'
+    return contained
+
 def CheckExistingQuicklook(radarsatfile, location):
     '''
     check if quicklook exists and if so, if area is contained in it
@@ -225,14 +281,7 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
         
     #Define names of input and outputfile
-    
-    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
-        gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
-        gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
-        
-  
-
+    gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
     outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG32633.dim'
 
     #Extract the zipfile
@@ -311,9 +360,9 @@ def ProcessNest(radarsatfile, outputfilepath, location, resolution):
 # CORE OF PROGRAM FOLLOWS HERE
 #############################################################
 
-year = 2014
+year = 2013
 
-while year <= 2014:
+while year <= 2013:
     
     # Define filelist to be processed (radarsat zip files)
     #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
@@ -321,14 +370,22 @@ while year <= 2014:
     
     foldername = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\' + str(year) 
     #outputfilepath = 'G:\\Aavatsmarkbreen'
-    outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\Austfonna'
+    outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\processed_images\\Linnevatnet'
     
     print 'check ', year, foldername
     
     filelist = []
     for root, dirnames, filenames in os.walk(foldername):
-      for filename in fnmatch.filter(filenames, 'RS2_201407*.zip'):
+      for filename in fnmatch.filter(filenames, 'RS2_2013071*.zip'):
           filelist.append(os.path.join(root, filename))
+
+    for root, dirnames, filenames in os.walk(foldername):
+      for filename in fnmatch.filter(filenames, 'RS2_2013072*.zip'):
+          filelist.append(os.path.join(root, filename))
+    for root, dirnames, filenames in os.walk(foldername):
+      for filename in fnmatch.filter(filenames, 'RS2_2013073*.zip'):
+          filelist.append(os.path.join(root, filename))
+
     
 
    
@@ -340,10 +397,16 @@ while year <= 2014:
     #lowerright_y = -1495000.0
     
     #Austfonna
-    upperleft_x = 651500.0
-    upperleft_y =  8891000.0       
-    lowerright_x = 740000.0        
-    lowerright_y = 8800881.0     
+    #upperleft_x = 651500.0
+    #upperleft_y =  8891000.0       
+    #lowerright_x = 740000.0        
+    #lowerright_y = 8800881.0     
+    
+    #Linnevatnet
+    upperleft_x = 466210.0
+    upperleft_y = 8668260.0
+    lowerright_x = 477220.0
+    lowerright_y = 8660340.0
     
     #Holtedalfonne
     #upperleft_x = 419726.0

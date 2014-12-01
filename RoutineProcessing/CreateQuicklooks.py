@@ -141,6 +141,7 @@ def CreateQuicklook(radarsatfile, outputfilepath):
 # Define filelist to be processed (radarsat zip files)
 
 root = Tkinter.Tk()
+root.attributes("-topmost", True)  #puts window on top of Spyder
 root.withdraw() #use to hide tkinter window
 
 currdir = os.getcwd()

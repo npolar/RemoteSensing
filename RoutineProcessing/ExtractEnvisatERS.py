@@ -24,6 +24,7 @@ def EnvisatERSDetailedQuicklook_CEOS(envisatfile):
     
     split = envisatfile.split("\\")
     
+    #browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infilepath[-40:-7] + '_EPSG32633.jpg'
     browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infilepath[-40:-7] + '_EPSG32633.jpg'
     
     #Call gdalwarp
@@ -63,24 +64,28 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
     #Define names
     #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
     gdalsourcefile = envisatfile
-    outputfilename = infilepath + '\\' + infileshortname + 'temp_EPSG32633.tif'
+    outputfilename = infilepath + '\\' + infileshortname + 'temp_EPSG3575.tif'
     
     split = envisatfile.split("\\")
     
-    browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infileshortname + '_EPSG32633.jpg'
+    #browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infileshortname + '_EPSG32633.jpg'
+    browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + '\\' + infileshortname + '_EPSG3575.jpg'
+    #browseimage = 'Z:\\ERS_Envisat_SAR\\Arctic\\2004' + '\\' + infileshortname + '_EPSG32633.jpg'
     
     #Call gdalwarp
-    print
+    print gdalsourcefile
+    print outputfilename
+    print browseimage
     print "map projecting file"
     print
-    os.system('gdalwarp -tps  -t_srs EPSG:32633 ' + gdalsourcefile + ' ' + outputfilename )  
+    os.system('gdalwarp -tps  -t_srs EPSG:3575 ' + gdalsourcefile + ' ' + outputfilename )  
     
     
     #Call gdaltranslate    
     print
     print "downsampling file"
     print
-    os.system('gdal_translate -of JPEG -ot byte -b 1 -outsize 20% 20% -scale 0 1000 0 255 ' + outputfilename + ' ' + browseimage )
+    os.system('gdal_translate -of JPEG -ot byte -b 1 -outsize 20% 20% -scale 0 5000 0 255 ' + outputfilename + ' ' + browseimage )
     
     #Remove folder where extracted and temporary files are stored
     os.remove(outputfilename)
@@ -101,23 +106,23 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
 #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
 #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
 filelist_CEOS = []
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
-  for filename in fnmatch.filter(filenames, 'DAT_01.001'):
-      filelist_CEOS.append(os.path.join(root, filename))
+#for root, dirnames, filenames in os.walk('Z:\CDsFromArchive'):
+#  for filename in fnmatch.filter(filenames, 'DAT_01.001'):
+#      filelist_CEOS.append(os.path.join(root, filename))
 
 filelist_E1E2 = []
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
+for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2004'):
   for filename in fnmatch.filter(filenames, '*.E1'):
       filelist_E1E2.append(os.path.join(root, filename))      
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
-  for filename in fnmatch.filter(filenames, '*.E2'):
+for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2004'):
+  for filename in fnmatch.filter(filenames, 'ASA_WSM*.E2'):
       filelist_E1E2.append(os.path.join(root, filename))  
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
-  for filename in fnmatch.filter(filenames, '*.N1'):
+for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2004'):
+  for filename in fnmatch.filter(filenames, 'ASA_WSM*.N1'):
       filelist_E1E2.append(os.path.join(root, filename)) 
 
     
-outputfilepath = 'C:\\Users\\max\\Documents\\processed_Envisat'
+outputfilepath = 'Z:\\ERS_Envisat_SAR\\Arctic\\2004'
 
 
 #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
