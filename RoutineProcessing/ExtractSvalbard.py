@@ -114,7 +114,7 @@ def CheckLocation(radarsatfile, location):
             contained = True   
             print radarsatfile, ' matches'
     
-    os.remove(radarsatfilepath + '//' + radarsatfileshortname + '//' + 'product.xml')  
+    shutil.rmtree('radarsatfilepath + '//' + radarsatfileshortname') 
     return contained        
     
     
