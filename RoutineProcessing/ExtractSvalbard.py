@@ -114,7 +114,7 @@ def CheckLocation(radarsatfile, location):
             contained = True   
             print radarsatfile, ' matches'
     
-    shutil.rmtree('radarsatfilepath + '//' + radarsatfileshortname') 
+    shutil.rmtree(radarsatfilepath + '//' + radarsatfileshortname) 
     return contained        
     
     
