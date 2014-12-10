@@ -33,238 +33,92 @@ ISSUES AT PRESENT:
 """
 
 import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
+import xml.etree.ElementTree as ET
+import Tkinter, tkFileDialog
 
-def CheckExistingQuicklook(radarsatfile, location):
-    '''
-    check if quicklook exists and if so, if area is contained in it
-    '''
+def splitfilepath(inputfile):
+    """
+    takes input file and returns inputfilepath, inputfilename, inputfileshortname, extension
+    """
+     #Get Filename of corresponding quicklook for radarsatfile
+    (inputfilepath, inputfilename) = os.path.split(inputfile)
+    (inputfileshortname, extension) = os.path.splitext(inputfilename)
     
-    #Get Filename of corresponding quicklook for radarsatfile
-    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
-    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
-    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
-        existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
-    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
-        existingquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_HH.tif'
-    
+    return inputfilepath, inputfilename, inputfileshortname, extension
 
+def CheckLocation(radarsatfile, location):
+    " check of radarsatfile is within location"
     
-    #check if quicklook exists
-    if (not os.path.exists(existingquicklook)):
-        return
+    #Divide filename    
+    radarsatfilepath, radarsatfilename, radarsatfileshortname, extension = splitfilepath(radarsatfile)
     
-    
-    upperleft_x = location[0]
-    upperleft_y = location[1]
-    lowerright_x = location[2]
-    lowerright_y = location[3]
-    
-    #Get Corners from existing quicklook
-    #Open GeoTiff Quicklook
-    driver = gdal.GetDriverByName('GTiff')
-    driver.Register()
-    dataset = gdal.Open(existingquicklook, gdal.GA_ReadOnly)
-    
-    contained = False     
-    if dataset == None:
-        return contained
-    
-    #Get Geoinformation
-    geotrans = dataset.GetGeoTransform()
-    cols = dataset.RasterXSize
-    rows = dataset.RasterYSize
-    #Determine extension and resolution
-    quick_upperleft_x = geotrans[0]
-    quick_upperleft_y = geotrans[3]
-    pixelwidth = geotrans[1]
-    pixelheight = geotrans[5]
-    quick_lowerright_x = quick_upperleft_x + pixelwidth * cols
-    quick_lowerright_y = quick_upperleft_y + pixelheight * rows
-    
-           
-    #Check if two points are contained in image
-    contained = False
-    #print quick_upperleft_x , upperleft_x , quick_lowerright_x, quick_upperleft_x , lowerright_x  , quick_lowerright_x
-    #print quick_upperleft_y , upperleft_y , quick_lowerright_y, quick_upperleft_y , lowerright_y, quick_lowerright_y
-    if ((quick_upperleft_x < upperleft_x < quick_lowerright_x) and (quick_upperleft_x < lowerright_x  < quick_lowerright_x)):
-        if ((quick_upperleft_y >   upperleft_y > quick_lowerright_y) and (quick_upperleft_y >  lowerright_y > quick_lowerright_y)):
-            contained = True   
-            print 'Found match: ', radarsatfile 
-    return contained
-
-def CreateQuicklook(radarsatfile, outputfilepath):
-    '''
-
-    '''
-            
-    #Various file paths and names:    
-    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)             
-    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
-        
-    #Define names of input and outputfile
-    #Check if file is Sentinel or Radarsat and use correct NEST file
-    if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
-        gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-        nestfilename = 'Calib_Spk_reproj_LinDB_Barents.xml'
-    if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
-        gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
-        nestfilename = 'Spk_reproj_Barents.xml'
-  
-    outputfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
-
-    #Extract the zipfile, skip if corrupt
+    #zipfile and check that it is ok
     try:
         zfile = zipfile.ZipFile(radarsatfile, 'r')
     except:
-        return
-    print    
-    print "Decompressing image for " + radarsatfilename + " on " + radarsatfilepath    
+        outputfilename = None
+        print radarsatfile, ' is corrupt.'
+        print 'Writing to ', 'C:\Users\max\Desktop\corruptRS.txt'
+        textfile = open( 'C:\Users\max\Desktop\corruptRS.txt', 'a')
+        textfile.write(radarsatfile + '\n' )
+        textfile.close()
+        return outputfilename
     
-    zfile.extractall(radarsatfilepath)
-    
-    #Call NEST routine
-    print
-    print "NEST Processing"
-    print
-    print "inputfile " + radarsatfileshortname
-    print "outputfile " + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575.dim'
-    print
-      
-    #check that xml file is correct!
-    
-    #Process using NEST
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\\' + nestfilename + ' -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
-    
-    #Close zipfile
+    #Extract product.xml file from zipfile
+    zfile.extract(radarsatfileshortname + '/product.xml', radarsatfilepath)
+
     zfile.close()
     
-    #############################################
-    # Convert DIM to GEOTIFF and JPEG
-    #############################################
-
-    #Get *.img files in dim-folder
-    (outputfilenamepath, outputfilename) =  os.path.split(outputfile)
-    (outputfileshortname, extension) = os.path.splitext(outputfilename)
-    dim_datafolder = outputfilenamepath + '//' + outputfileshortname + '.data'
-    if radarsatfileshortname[0:3] == 'RS2':
-        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Sigma*.img'
-    if radarsatfileshortname[0:2] == 'S1':  #Once Sentinel can be calibrated, both will be Sigma*.img
-        dim_datafile = outputfilenamepath + '//' + outputfileshortname + '.data/Amplitude*.img'
-    dimlist = glob.glob(dim_datafile)
+    #Read coordinates from product.xml    
+    tree = ET.parse(radarsatfilepath + '//' + radarsatfileshortname + '//' + 'product.xml')
+    root = tree.getroot()
     
-    #Loop through Sigma*.img files and convert to GeoTIFF and JPG
-    for envifile in dimlist:
-        if radarsatfileshortname[0:3] == 'RS2':
-            polarisation = envifile[-9:-7]
-        if radarsatfileshortname[0:2] == 'S1':    
-            polarisation = envifile[-6:-4]
-        
-        #auxfile is created automatically by NEST, name defined to remove it       
-        auxfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif.aux.xml'
-        destinationfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
-        jpegfile = outputfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.jpg'
-
-
-        print
-        print 'Converting to GeoTIFF: '
-        print '\nfrom ' + envifile
-        print '\nto ' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3575_' + polarisation + '.tif'
-        
- 
-        os.system("gdal_translate -a_srs EPSG:3575 -stats -of GTiff  " + envifile + " " +  destinationfile)
-                    
-        
-
-            
-        #Convert to JPG
-        #SCALING MAY NEED TO BE ADJUSTED WHEN NEST FILE CHANGES
-        print
-        print "create jpeg scene"
-        print
-        if radarsatfileshortname[0:3] == 'RS2':
-             os.system("gdal_translate -scale -30 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
-        
-        if radarsatfileshortname[0:2] == 'S1': 
-            os.system("gdal_translate -scale 0 500 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
-        
-        #Clean up temp files
-        
-        try:
-            os.remove(auxfile)
-        except:
-            pass
-
-    #Clean up temp files    
+    latitude_list = []
+    for latitude in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}latitude'):
+         latitude_list.append(latitude.text)
     
-    try:
-        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname + '.SAFE')
-    except:
-        pass
-
-    try:
-        shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
-    except:
-        pass   
+    longitude_list = []
+    for longitude in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}longitude'):
+         longitude_list.append(longitude.text)
     
-    shutil.rmtree(dim_datafolder)
-    os.remove(outputfile)
+    #upperleft is the first coordinate, lowerright the last in the list in product.xml     
+    RS2_upperleftEPSG4326_x = float(longitude_list[0])
+    RS2_upperleftEPSG4326_y = float(latitude_list[0])
+    RS2_lowerrightEPSG4326_x = float(longitude_list[-1])
+    RS2_lowerrightEPSG4326_y = float(latitude_list[-1])
     
-    print   
+     
+    AreaOfInterest_upperleft_EPSG32633_x = location[0]
+    AreaOfInterest_upperleft_EPSG32633_y = location[1]
+    AreaOfInterest_lowerright_EPSG32633_x = location[2]
+    AreaOfInterest_lowerright_EPSG32633_y = location[3]
+      
+    #convert location to EPSG32633
+    EPSG3575 = pyproj.Proj("+init=EPSG:3575")
+    EPSG32633 = pyproj.Proj("+init=EPSG:32633") #UTM33
+    EPSG4326 = pyproj.Proj("+init=EPSG:4326")
     
-def CheckLocation(radarsatfile, location):
-    '''
-    USE IF ONLY SCENES FROM SPECIFIED LOCATION WANTED
-
-    Checks corresponding EPSG3575 quicklook and checks RS-2 files against 
-    wanted location, returning True or False
-    
-    Location is ULX, ULY, LRX, LRY
-    
-    Uses the existing quicklooks to match point, NOT the zipped RS-2 file
-    since it takes longer time to extract the zip files.
-    
-    If no quicklooks exist, run RadarsatDetailedQuicklook.py
-    
-    '''
-   
-    #Get Filename of corresponding quicklook for radarsatfile
-    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)
-    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)   
-    radarsatquicklook = radarsatfilepath + '//' + radarsatfileshortname + '_EPSG3575.tif'
+    AreaOfInterest_upperleft_EPSG4326_x, AreaOfInterest_upperleft_EPSG4326_y = pyproj.transform(EPSG32633, EPSG4326, AreaOfInterest_upperleft_EPSG32633_x, AreaOfInterest_upperleft_EPSG32633_y)
+    AreaOfInterest_lowerright_EPSG4326_x, AreaOfInterest_lowerright_EPSG4326_y =pyproj.transform(EPSG32633, EPSG4326, AreaOfInterest_lowerright_EPSG32633_x, AreaOfInterest_lowerright_EPSG32633_y)
     
     
-    #Open GeoTiff Quicklook
-    driver = gdal.GetDriverByName('GTiff')
-    driver.Register()
-    dataset = gdal.Open(radarsatquicklook, gdal.GA_ReadOnly)
-  
-    #Get Geoinformation
-    geotrans = dataset.GetGeoTransform()
-    cols = dataset.RasterXSize
-    rows = dataset.RasterYSize
-    
-    #Determine extension and resolution
-    upperleft_x = geotrans[0]
-    upperleft_y = geotrans[3]
-    pixelwidth = geotrans[1]
-    pixelheight = geotrans[5]
-    lowerright_x = upperleft_x + pixelwidth * cols
-    lowerright_y = upperleft_y + pixelheight * rows
-    
-           
     #Check if two points are contained in image
     contained = False
+    print RS2_upperleftEPSG4326_x, AreaOfInterest_upperleft_EPSG4326_x, RS2_lowerrightEPSG4326_x
+    print RS2_upperleftEPSG4326_x, AreaOfInterest_lowerright_EPSG4326_x, RS2_lowerrightEPSG4326_x
+    print RS2_upperleftEPSG4326_y, AreaOfInterest_upperleft_EPSG4326_y, RS2_lowerrightEPSG4326_y
+    print RS2_upperleftEPSG4326_y, AreaOfInterest_lowerright_EPSG4326_y, RS2_lowerrightEPSG4326_y
+
     
-    #print location[0], upperleft_x, location[2], location[0], lowerright_x, location[2]
-    #print location[1], upperleft_y, location[3], location[1], lowerright_y, location[3]
-    
-  
-    if ((upperleft_x < location[0] < lowerright_x) and (upperleft_x < location[2]  < lowerright_x)):
-        if ((upperleft_y >  location[1] > lowerright_y) and (upperleft_y >  location[3] > lowerright_y)):
+    if ((RS2_upperleftEPSG4326_x < AreaOfInterest_upperleft_EPSG4326_x < RS2_lowerrightEPSG4326_x) and (RS2_upperleftEPSG4326_x < AreaOfInterest_lowerright_EPSG4326_x  < RS2_lowerrightEPSG4326_x)):
+        
+        if ((RS2_upperleftEPSG4326_y > AreaOfInterest_upperleft_EPSG4326_y > RS2_lowerrightEPSG4326_y) and (RS2_upperleftEPSG4326_y >  AreaOfInterest_lowerright_EPSG4326_y > RS2_lowerrightEPSG4326_y)):
             contained = True   
-            print 'Found match', radarsatfile 
-    return contained            
-    dataset = None
+            print radarsatfilename, ' matches'
+    
+    shutil.rmtree(radarsatfilepath + '//' + radarsatfileshortname)
+    
+    return contained   
     
 def ProcessNest(radarsatfile, outputfilepath, location):
     '''
@@ -280,16 +134,14 @@ def ProcessNest(radarsatfile, outputfilepath, location):
     Map Projection Barents Sea EPSG:3575
     '''
             
-    #Various file paths and names:    
-    (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)             
-    (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename)        
+    #Divide filename    
+    radarsatfilepath, radarsatfilename, radarsatfileshortname, extension = splitfilepath(radarsatfile)      
         
     #Define names of input and outputfile
         
     if radarsatfileshortname[0:3] == 'RS2':  # RADARSAT-2
         gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
         nestfilename = 'Calib_Spk_TC_LinDB_Barents.xml'
-        
     if radarsatfileshortname[0:2] == 'S1':   # SENTINEL-1
         gdalsourcefile = radarsatfilepath  +  '\\' + radarsatfileshortname + '.safe' + '\\' + 'manifest.safe'
         nestfilename = 'Calib_Spk_TC_LinDB_Sentinel.xml'
@@ -458,17 +310,18 @@ def ProcessNest(radarsatfile, outputfilepath, location):
 
 
 # Define filelist to be processed (radarsat zip files)
-#inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2014'
-#outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2014'
-#outputfilepath = 'G:\\FramstraitExtract'
 
-#inputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
-#outputfilepath = 'Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard'
-#inputfilepath = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October'
-#outputfilepath  = 'Z:\\Sentinel-1\\ArcticOceanSvalbard\\10_October' 
+root = Tkinter.Tk()
+root.attributes("-topmost", True)  #puts window on top of Spyder
+root.withdraw() #use to hide tkinter window
 
-inputfilepath =  'C:\\Users\\max\\Desktop'
-outputfilepath = 'C:\\Users\\max\\Desktop'
+#currdir = os.getcwd()
+currdir = 'G:\\satellittdata\\flerbrukBarents'  #start search at standard directory
+inputfilepath = tkFileDialog.askdirectory(parent=root, initialdir=currdir, title='Please select a input directory containing SAR scenes')
+outputfilepath = tkFileDialog.askdirectory(parent=root, initialdir=currdir, title='Please select a output directory')
+
+#inputfilepath =  'G:\\satellittdata\\flerbrukBarents'
+#outputfilepath = 'G:\\satellittdata\\flerbrukBarents'
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):
@@ -510,26 +363,12 @@ for radarsatfile in filelist:
     
     contained = False
     #check if quicklook exists
-    if ( os.path.exists(existingquicklook) & (location != [])):
+    if location != []:
         print        
-        print "quicklook exists"
+        print "check location"
         print 
-        contained = CheckExistingQuicklook(radarsatfile, location)
-    elif( os.path.exists(existingquicklook2) & (location != [])):
-        print "old quicklook exists"
-               
         contained = CheckLocation(radarsatfile, location)
-    elif (location != []):
-        #Create Quicklook from which area is determined (not very good solution)
-        print 
-        print "quicklook to be created"
-        print 
-        outputfile = CreateQuicklook(radarsatfile)
-        if outputfile == None:
-            continue
-    
-        contained = CheckLocation(radarsatfile, location)
-       
+           
     
     #Check if file contains parts of Area Of Interest
     #contained = ExtractRadarsat(radarsatfile, location)
