@@ -7,13 +7,9 @@ Then calibrate and project image to EPSG:32633 (UTM33 WGS84) as GeoTIFF and JPG
 
 Steps (more details in each function):
     
-RadarsatDetailedQuicklook
-- Creates a rough quicklook
-- subsequently only used to get coordinates and projection
-- better way for this needed in future version
-
-ExtractRadarsat
-- uses location to extract images matching a rectangle
+CheckLocation
+- Reads Corners from product.xml
+- checks if Area of Interest falls in image
 
 ProcessNest(svalbardlist)
 - Geocode and Process with NEST
@@ -25,10 +21,8 @@ Requirements to run this code see:
 http://geoinformaticstutorial.blogspot.no/2013/03/installing-python-with-gdal-on-windows.html
 
 ISSUES AT PRESENT:
-- better way to get corner coordinates
 - two no data values in GeoTIFF and JPG due to reprojecting twice
 - check if scene contains too much NAN
-- solve NEST reprojection issue (does not do all)
 - ideally scenes containing Svalbard should be terraincorrected
 - Svalbard area usually has EPSG32633 and Barents EPSG 3575
 """
