@@ -88,9 +88,9 @@ def ProcessNest(radarsatfile, Terraincorrection):
     #check that xml file is correct!
     
     if "SLC" in radarsatfile:
-        SLC == 'YES'
+        SLC = 'YES'
     else:
-        SLC == 'NO'
+        SLC = 'NO'
         
     #Process using NEST
     #os.system(r'gpt C:\Users\max\Desktop\Calib_Spk_reproj_LinDB_Barents3031TEST.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
