@@ -10,32 +10,17 @@
   <node id="2-Write">
     <operator>Write</operator>
     <sources>
-      <sourceProduct refid="6-LinearTodB"/>
+      <sourceProduct refid="7-Reprojection"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <formatName>BEAM-DIMAP</formatName>
       <file>$target.dim</file>
     </parameters>
   </node>
-  <node id="3-Calibration">
-    <operator>Calibration</operator>
-    <sources>
-      <sourceProduct refid="1-Read"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
-      <auxFile>Product Auxiliary File</auxFile>
-      <externalAuxFile/>
-      <outputImageInComplex>false</outputImageInComplex>
-      <outputImageScaleInDb>false</outputImageScaleInDb>
-      <createGammaBand>false</createGammaBand>
-      <createBetaBand>false</createBetaBand>
-    </parameters>
-  </node>
   <node id="4-Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
-      <sourceProduct refid="3-Calibration"/>
+      <sourceProduct refid="1-Read"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -48,15 +33,6 @@
       <enl>1.0</enl>
     </parameters>
   </node>
-  <node id="6-LinearTodB">
-    <operator>LinearTodB</operator>
-    <sources>
-      <sourceProduct refid="7-Reprojection"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
-    </parameters>
-  </node>
   <node id="7-Reprojection">
     <operator>Reprojection</operator>
     <sources>
@@ -65,26 +41,24 @@
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <wktFile/>
       <crs>PROJCS[&quot;WGS 84 / North Pole LAEA Europe&quot;, &#xd;
-    GEOGCS[&quot;WGS 84&quot;, &#xd;
-        DATUM[&quot;WGS_1984&quot;, &#xd;
-            SPHEROID[&quot;WGS 84&quot;,6378137,298.257223563, &#xd;
-                AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
-        PRIMEM[&quot;Greenwich&quot;,0, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
-        UNIT[&quot;degree&quot;,0.0174532925199433, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;9122&quot;]], &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
-    PROJECTION[&quot;Lambert_Azimuthal_Equal_Area&quot;], &#xd;
-    PARAMETER[&quot;latitude_of_center&quot;,90], &#xd;
-    PARAMETER[&quot;longitude_of_center&quot;,10], &#xd;
-    PARAMETER[&quot;false_easting&quot;,0], &#xd;
-    PARAMETER[&quot;false_northing&quot;,0], &#xd;
-    UNIT[&quot;metre&quot;,1, &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;9001&quot;]], &#xd;
-    AXIS[&quot;X&quot;,EAST], &#xd;
-    AXIS[&quot;Y&quot;,NORTH], &#xd;
-    AUTHORITY[&quot;EPSG&quot;,&quot;3575&quot;]]</crs>
+  GEOGCS[&quot;WGS 84&quot;, &#xd;
+    DATUM[&quot;WGS_1984&quot;, &#xd;
+      SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
+      AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
+    PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
+    UNIT[&quot;degree&quot;, 0.017453292519943295], &#xd;
+    AXIS[&quot;Longitude&quot;, EAST], &#xd;
+    AXIS[&quot;Latitude&quot;, NORTH], &#xd;
+    AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
+  PROJECTION[&quot;Lambert_Azimuthal_Equal_Area&quot;], &#xd;
+  PARAMETER[&quot;latitude_of_center&quot;, 90.0], &#xd;
+  PARAMETER[&quot;longitude_of_center&quot;, 10.0], &#xd;
+  PARAMETER[&quot;false_easting&quot;, 0.0], &#xd;
+  PARAMETER[&quot;false_northing&quot;, 0.0], &#xd;
+  UNIT[&quot;m&quot;, 1.0], &#xd;
+  AXIS[&quot;x&quot;, EAST], &#xd;
+  AXIS[&quot;y&quot;, NORTH], &#xd;
+  AUTHORITY[&quot;EPSG&quot;,&quot;3575&quot;]]</crs>
       <resampling>Nearest</resampling>
       <referencePixelX/>
       <referencePixelY/>
@@ -114,17 +88,11 @@
     <node id="2-Write">
       <displayPosition y="135.0" x="455.0"/>
     </node>
-    <node id="3-Calibration">
-      <displayPosition y="131.0" x="125.0"/>
-    </node>
     <node id="4-Speckle-Filter">
       <displayPosition y="137.0" x="221.0"/>
     </node>
-    <node id="6-LinearTodB">
-      <displayPosition y="225.0" x="457.0"/>
-    </node>
     <node id="7-Reprojection">
-      <displayPosition y="232.0" x="339.0"/>
+      <displayPosition y="180.0" x="327.0"/>
     </node>
   </applicationData>
 </graph>

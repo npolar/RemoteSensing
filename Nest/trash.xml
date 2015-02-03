@@ -4,7 +4,7 @@
     <operator>Read</operator>
     <sources/>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <file>$file</file>
+      <file>C:\Users\max\Documents\KennyTemp\RS2_20130117_033604_0045_SCNA_HHHV_SGF_239183_9555_8023085\RS2_20130117_033604_0045_SCNA_HHHV_SGF_239183_9555_8023085\product.xml</file>
     </parameters>
   </node>
   <node id="2-Write">
@@ -14,7 +14,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <formatName>BEAM-DIMAP</formatName>
-      <file>$target.dim</file>
+      <file>C:\Users\max\Documents\KennyTemp\$target.dim</file>
     </parameters>
   </node>
   <node id="3-Calibration">
@@ -54,7 +54,9 @@
       <sourceProduct refid="7-Reprojection"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
+      <sourceBands>
+        <band>Sigma0_HH</band>
+      </sourceBands>
     </parameters>
   </node>
   <node id="7-Reprojection">
@@ -64,27 +66,28 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <wktFile/>
-      <crs>PROJCS[&quot;WGS 84 / North Pole LAEA Europe&quot;, &#xd;
-    GEOGCS[&quot;WGS 84&quot;, &#xd;
-        DATUM[&quot;WGS_1984&quot;, &#xd;
-            SPHEROID[&quot;WGS 84&quot;,6378137,298.257223563, &#xd;
-                AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
-        PRIMEM[&quot;Greenwich&quot;,0, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
-        UNIT[&quot;degree&quot;,0.0174532925199433, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;9122&quot;]], &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
-    PROJECTION[&quot;Lambert_Azimuthal_Equal_Area&quot;], &#xd;
-    PARAMETER[&quot;latitude_of_center&quot;,90], &#xd;
-    PARAMETER[&quot;longitude_of_center&quot;,10], &#xd;
-    PARAMETER[&quot;false_easting&quot;,0], &#xd;
-    PARAMETER[&quot;false_northing&quot;,0], &#xd;
-    UNIT[&quot;metre&quot;,1, &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;9001&quot;]], &#xd;
-    AXIS[&quot;X&quot;,EAST], &#xd;
-    AXIS[&quot;Y&quot;,NORTH], &#xd;
-    AUTHORITY[&quot;EPSG&quot;,&quot;3575&quot;]]</crs>
+      <crs>PROJCS[&quot;WGS 84 / Australian Antarctic Lambert&quot;, &#xd;
+  GEOGCS[&quot;WGS 84&quot;, &#xd;
+    DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
+      SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
+      AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
+    PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
+    UNIT[&quot;degree&quot;, 0.017453292519943295], &#xd;
+    AXIS[&quot;Geodetic longitude&quot;, EAST], &#xd;
+    AXIS[&quot;Geodetic latitude&quot;, NORTH], &#xd;
+    AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
+  PROJECTION[&quot;Lambert_Conformal_Conic_2SP&quot;, AUTHORITY[&quot;EPSG&quot;,&quot;9802&quot;]], &#xd;
+  PARAMETER[&quot;central_meridian&quot;, 70.0], &#xd;
+  PARAMETER[&quot;latitude_of_origin&quot;, -50.0], &#xd;
+  PARAMETER[&quot;standard_parallel_1&quot;, -68.5], &#xd;
+  PARAMETER[&quot;false_easting&quot;, 6000000.0], &#xd;
+  PARAMETER[&quot;false_northing&quot;, 6000000.0], &#xd;
+  PARAMETER[&quot;scale_factor&quot;, 1.0], &#xd;
+  PARAMETER[&quot;standard_parallel_2&quot;, -74.5], &#xd;
+  UNIT[&quot;m&quot;, 1.0], &#xd;
+  AXIS[&quot;Easting&quot;, EAST], &#xd;
+  AXIS[&quot;Northing&quot;, NORTH], &#xd;
+  AUTHORITY[&quot;EPSG&quot;,&quot;3033&quot;]]</crs>
       <resampling>Nearest</resampling>
       <referencePixelX/>
       <referencePixelY/>

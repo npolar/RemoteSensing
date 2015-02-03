@@ -789,7 +789,7 @@ print "*"*31
 print "Running IceChartProcessing"
 print "*"*31
 print
-startyear = 1997
+startyear = 19
 endyear = 2013
 
 #FOR EVERY YEAR ONLY THE FOLLOWING MONTH

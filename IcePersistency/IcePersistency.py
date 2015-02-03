@@ -255,6 +255,8 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
     return outfile
     print 'Done Creating Persistence Map'
     
+
+
 def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raster, oceanmask_buffer5, NSIDC_balticmask ):   
     ''' 
          Creates maximum and minimum ice map, GeoTIFF and shapefile
@@ -945,12 +947,13 @@ NSIDC_balticmask = 'C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_baltic
 #filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
-startyear = 1984
-stopyear = 2013
-month = 10                            #Values 1 to 12
+startyear = 1985
+stopyear = 2014
+month = 4                            #Values 1 to 12
 
 monthDict={1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
-outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\' + monthDict[month] + '\\'
+#outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\' + monthDict[month] + '\\'
+outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\2014_test\\' + monthDict[month] + '\\'
 
 if os.path.exists(outfilepath):
     answer = raw_input(outfilepath + " exists, delete and overwrite folder? [Y]es?")
@@ -986,7 +989,7 @@ for icechart in filelist:
 
 
 
-FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
+#FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
 
 FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster)
     

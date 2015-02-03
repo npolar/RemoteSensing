@@ -87,6 +87,11 @@ def ProcessNest(radarsatfile, Terraincorrection):
     
     #check that xml file is correct!
     
+    if "SLC" in radarsatfile:
+        SLC == 'YES'
+    else:
+        SLC == 'NO'
+        
     #Process using NEST
     #os.system(r'gpt C:\Users\max\Desktop\Calib_Spk_reproj_LinDB_Barents3031TEST.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     #TERRAIN CORRECTION:    
@@ -97,9 +102,20 @@ def ProcessNest(radarsatfile, Terraincorrection):
         if "_SC" in radarsatfile:                
             os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
         if "_F" in radarsatfile:
-            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+            if SLC == 'YES':
+                os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\ML_Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+
+            else:
+                os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
     else:
-        os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+        if SLC == 'YES':
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\ML_Calib_Spk_reproj_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    
+        else:
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    
+    
+    
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -138,7 +154,7 @@ def ProcessNest(radarsatfile, Terraincorrection):
         #Convert to GeoTIFF
         os.system("gdal_translate -a_srs EPSG:3031 -stats -of GTiff " + envifile + " " +  destinationfile)
         #Build overviews
-        os.system("gdaladdo -r NEAREST -ro " + destinationfile + " 2 4 8 16 32 64")  #Build overviews
+        #os.system("gdaladdo -r NEAREST -ro " + destinationfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create JPG
         os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
@@ -162,10 +178,12 @@ def ProcessNest(radarsatfile, Terraincorrection):
 
 
 # Define filelist to be processed (radarsat zip files)
-Terraincorrection = 'YES'
-#Terraincorrection = 'NO'
+#Terraincorrection = 'YES'
+Terraincorrection = 'NO'
 
-filelist = glob.glob(r'G:\TC_DML_firstTry\*.zip')
+
+
+filelist = glob.glob(r'G:\satellittdata\DML\RS2*.zip')
 
 #Loop through filelist and process
 for radarsatfile in filelist:

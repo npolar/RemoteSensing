@@ -262,7 +262,7 @@ def ProcessNest(radarsatfile, outputfilepath, location):
         #os.system("gdal_translate -outsize 40% 40% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
         #os.system("gdal_translate -outsize 10% 10% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile2)
         #os.system("gdal_translate -outsize 20% 20% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile3)
-        #os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
+        os.system("gdal_translate -outsize 30% 30% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile4)
         #os.system("gdal_translate -outsize 50% 50% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile5)
         
         #Create small jpeg --- THESE ARE CREATED FOR FIELD WORK TRANSFER ONLY DURING FIELD WORK
@@ -319,7 +319,7 @@ outputfilepath = tkFileDialog.askdirectory(parent=root, initialdir=currdir, titl
 
 filelist = []
 for root, dirnames, filenames in os.walk(inputfilepath):
-  for filename in fnmatch.filter(filenames, '*.zip'):
+  for filename in fnmatch.filter(filenames, 'RS*.zip'):
       filelist.append(os.path.join(root, filename))
 
 
