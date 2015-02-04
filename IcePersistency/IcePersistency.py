@@ -122,7 +122,19 @@ def Bin2GeoTiff(infile,outfilepath ):
     #REPROJECT GEOTIFF TO EPSG3575
     #####
     EPSG3411_2_EPSG3575(outfile)
-    
+
+def BurnNonIce(inputArray, outputArray, maskList = [251, 252, 253, 254, 255])
+    '''
+    Copies the non ice values of the inputArray into the outputArray. Mask values are 
+    defined by the maskValues list. If maskValues isn't defined it we'll use the 
+    default nsidc mask values defined in the "parameter or variable" section @
+    http://nsidc.org/data/docs/daac/nsidc0051_gsfc_seaice.gd.html
+    '''
+
+    for maskVal in maskList:
+        outarray = numpy.where( (inputRaster ==   maskVal), maskVal, outarray)
+
+    return outputRaster
     
 def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
     '''
@@ -211,11 +223,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
         
         #Array calculation and burn in land values on top
         outarray = numpy.where( (iceraster >=  38), (outarray + ( 100.0 / NumberOfDays ) ) , outarray)
-        outarray = numpy.where( (iceraster ==   251), 251 , outarray)
-        outarray = numpy.where( (iceraster ==   252), 252 , outarray)
-        outarray = numpy.where( (iceraster ==   253), 253 , outarray)
-        outarray = numpy.where( (iceraster ==   254), 254 , outarray)
-        outarray = numpy.where( (iceraster ==   255), 255 , outarray)
+        outarray = BurnNonIce(iceraster, outarray)
                
         #Clear iceraster for next loop -- just in case
         iceraster = None
@@ -230,12 +238,9 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
     max_chartraster = max_chart.ReadAsArray()
     landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
+
     outarray = numpy.where(max_chartraster == 1, outarray, 0)
-    outarray = numpy.where( (landraster ==   251), 251 , outarray)
-    outarray = numpy.where( (landraster ==   252), 252 , outarray)
-    outarray = numpy.where( (landraster ==   253), 253 , outarray)
-    outarray = numpy.where( (landraster ==   254), 254 , outarray)
-    outarray = numpy.where( (landraster ==   255), 255 , outarray)
+    outarray = BurnNonIce(landraster, outarray)
     
     outband = outraster.GetRasterBand(1)   
     outband.WriteArray(outarray)
@@ -404,11 +409,8 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     #outarray contains now NumberOfDay with ice -- burn in landmask
     landmask = gdal.Open(landmask_raster , gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
-    outarray = numpy.where( (landraster == 251), 251, outarray)
-    outarray = numpy.where( (landraster == 252), 252, outarray)
-    outarray = numpy.where( (landraster == 253), 253, outarray)
-    outarray = numpy.where( (landraster == 254), 254, outarray)
-    outarray = numpy.where( (landraster == 255), 255, outarray)
+
+    outarray = BurnNonIce(landraster, outarray)
     
     #######
     # CALCULATE MAXIMUM RASTER
@@ -416,11 +418,8 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     # Where never was ice, set map to 0, elsewhere to 1, i.e. at least one day ice
     # Using landraster again -- otherwise if NumberOfDay mask by chance 252, it is masked out
     outarraymax = numpy.where( (outarray == 0), 0, 1 )
-    outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   255), 255 , outarraymax)
+
+    outarraymax = BurnNonIce(landraster, outarraymax)
     
     #######
     # CALCULATE MINIMUM RASTER
@@ -429,12 +428,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     # Keep in mind: Problems may arise when one value is missing (bad file)
     # such that value is just one or two less than NumberofDays
     outarraymin = numpy.where( (outarray == NumberOfDays), 1, 0 )
-    outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   253), 253 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   254), 254 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
-    
+    outarraymin = BurnNonIce(landraster, outarraymin)
         
     #get the bands 
     outband = outraster.GetRasterBand(1)    
@@ -464,11 +458,8 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     gdal.SieveFilter( srcband, maskband, dstband,threshold = 3, connectedness = 4  )
     #load outbandmin once more and burn landmask again since sieve influences coastline
     outarraymin = outrastermin.ReadAsArray()
-    outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   253), 253 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   254), 254 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
+    outarraymin = BurnNonIce(landraster, outarraymin)
+
     outbandmin = outrastermin.GetRasterBand(1)    
     outbandmin.WriteArray(outarraymin)
     outbandmin.FlushCache()
@@ -484,10 +475,10 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     gdal.SieveFilter( srcband, maskband, dstband,threshold = 3, connectedness = 4  )
     #load outbandmin once more and burn landmask again since sieve influences coastline
     outarraymax = outrastermax.ReadAsArray()
-    outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
+
+    'NOTE!!! Is there a reason why the missing data mask is ignored here?'
+    outarraymax = BurnNonIce(landraster, outarraymax, [251, 252, 253, 254])
+
     outbandmax = outrastermax.GetRasterBand(1)    
     outbandmax.WriteArray(outarraymax)
     outbandmax.FlushCache()
@@ -609,11 +600,9 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outarraymax = outarray.ReadAsArray()
     landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
-    outarraymax = numpy.where( (landraster ==   251), 251 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
-    outarraymax = numpy.where( (landraster ==   255), 255 , outarraymax)
+
+    outarraymax = BurnNonIce(landraster, outarraymax)
+
     outbandmax = outarray.GetRasterBand(1)    
     outbandmax.WriteArray(outarraymax)
     outbandmax.FlushCache()
@@ -636,11 +625,9 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outarraymin = outarray.ReadAsArray()
     landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
     landraster = landmask.ReadAsArray()
-    outarraymin = numpy.where( (landraster ==   251), 251 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   252), 252 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   253), 253 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   254), 254 , outarraymin)
-    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
+
+    outarraymax = BurnNonIce(landraster, outarraymin)
+
     outbandmin = outarray.GetRasterBand(1)    
     outbandmin.WriteArray(outarraymin)
     outbandmin.FlushCache()
@@ -807,12 +794,9 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         # outarray contains filtered values -- burn in landmask
         landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
         landraster = landmask.ReadAsArray()
-        presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 253), 253, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 254), 254, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 255), 255, presentdayraster)        
-        
+
+        presentdayraster = BurnNonIce(landraster, presentdayraster)
+
         presentdayfileband = presentdayfile.GetRasterBand(1)
             
         presentdayfileband.WriteArray(presentdayraster)
@@ -907,11 +891,8 @@ def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
         #outarray contains now NumberOfDay with ice -- burn in landmask
         landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
         landraster = landmask.ReadAsArray()
-        presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 253), 253, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 254), 254, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 255), 255, presentdayraster)        
+
+        presentdayraster = BurnNonIce(landraster, presendayraster)
         
         presentdayfileband = presentdayfile.GetRasterBand(1)
             
