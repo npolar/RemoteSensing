@@ -125,8 +125,8 @@ def Bin2GeoTiff(infile,outfilepath ):
 
 def BurnNonIce(inputArray, outputArray, maskList = [251, 252, 253, 254, 255])
     '''
-    Copies the non ice values of the inputArray into the outputArray. Mask values are 
-    defined by the maskValues list. If maskValues isn't defined it we'll use the 
+    Copies the non ice values of the inputArray into the outputArray. Mask values are
+    defined by the maskValues list. If maskValues isn't defined it we'll use the
     default nsidc mask values defined in the "parameter or variable" section @
     http://nsidc.org/data/docs/daac/nsidc0051_gsfc_seaice.gd.html
     '''
@@ -135,6 +135,27 @@ def BurnNonIce(inputArray, outputArray, maskList = [251, 252, 253, 254, 255])
         outarray = numpy.where( (inputRaster ==   maskVal), maskVal, outarray)
 
     return outputRaster
+
+def GenerateTemporaryShapefileDict(filepath, basename="tmpShape", numberOfTmpFiles=3):
+    tmpShapeFiles = {}
+    shapeFileExtensions = [".shp", ".shx", ".dbf", ".prj"]
+
+    for count in range(1, numberOfTmpFiles + 1):
+        for ext in shapeFileExtensions:
+            tmpMax = basename + count + "max" + ext
+            tmpMin = basename + count + "min" + ext
+
+            tmpShapeFiles[tmpMax] = filepath + tmpMax
+            tmpShapeFiles[tmpMin] = filepath + tmpMin
+
+    return tmpShapeFiles
+
+# Removes files defined in a dictionary from the filesystem
+def RemoveFilesByDictionary(fileDictionary)
+    for key in fileDictionary.iterkeys():
+        # Check if file exists before we try to remove it
+        if os.path.isfile(fileDictionary[key]):
+            os.remove(fileDictionary[key])
     
 def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
     '''
@@ -299,36 +320,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outshape_polymin = inpath + 'icechart_poly_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
     outshape_linemax = inpath + 'icechart_line_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
     outshape_linemin = inpath + 'icechart_line_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
-    
-    #Temporary shapefile, all subfiles specified so that they can be removed later
-    #Many because gdal commands expect existing files
-    outshape_tempmax = inpath + 'icechart_tempmax.shp'
-    outshape_tempmax2 = inpath + 'icechart_tempmax.dbf'
-    outshape_tempmax3 = inpath + 'icechart_tempmax.prj'
-    outshape_tempmax4 = inpath + 'icechart_tempmax.shx'
-    outshape_tempmin = inpath + 'icechart_tempmin.shp'
-    outshape_tempmin2 = inpath + 'icechart_tempmin.dbf'
-    outshape_tempmin3 = inpath + 'icechart_tempmin.prj'
-    outshape_tempmin4 = inpath + 'icechart_tempmin.shx'
-    
-    outshape_temp2max = inpath + 'icechart_temp2max.shp'
-    outshape_temp2max2 = inpath + 'icechart_temp2max.dbf'
-    outshape_temp2max3 = inpath + 'icechart_temp2max.prj'
-    outshape_temp2max4 = inpath + 'icechart_temp2max.shx'
-    outshape_temp2min = inpath + 'icechart_temp2min.shp'
-    outshape_temp2min2 = inpath + 'icechart_temp2min.dbf'
-    outshape_temp2min3 = inpath + 'icechart_temp2min.prj'
-    outshape_temp2min4 = inpath + 'icechart_temp2min.shx'
-    
-    outshape_temp3max = inpath + 'icechart_temp3max.shp'
-    outshape_temp3max2 = inpath + 'icechart_temp3max.dbf'
-    outshape_temp3max3 = inpath + 'icechart_temp3max.prj'
-    outshape_temp3max4 = inpath + 'icechart_temp3max.shx'
-    outshape_temp3min = inpath + 'icechart_temp3min.shp'
-    outshape_temp3min2 = inpath + 'icechart_temp3min.dbf'
-    outshape_temp3min3 = inpath + 'icechart_temp3min.prj'
-    outshape_temp3min4 = inpath + 'icechart_temp3min.shx'
-   
+
     ########
     # CREATE NUMBER OF DAYS RASTER FILE AS COPY FROM ICE FILE
     ########    
@@ -496,54 +488,49 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outarraymin = None   
     landraster = None   
     landmask = None     
-    
+
+    ##################
+    # Create the shape files needed for the conversion operation
+    #################
+    # Temporary shapefile, all subfiles specified so that they can be removed later
+    # Many because gdal commands expect existing files
+    tmpShapeFiles = GenerateTemporaryShapefileDict(inpath, "icechart_temp")
+
     ###################
     # CONVERT THE RASTERS CREATED ABOVE TO SHAPEFILES
     ###################
 
     # conversion to shape    
     print '\n Convert ', outfilemax, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + outshape_tempmax )
+    os.system('gdal_polygonize.py ' + outfilemax + ' -f "ESRI Shapefile" ' + tmpShapeFiles["icechart_temp1max.shp"] )
     print '\n Convert ', outfilemin, ' to shapefile.'
-    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + outshape_tempmin ) 
+    os.system('gdal_polygonize.py ' + outfilemin + ' -f "ESRI Shapefile" ' + tmpShapeFiles["icechart_temp1min.shp"] ) 
     
     # FILTERING MAX / MIN    
     # Get the large polygon only, this removes mistaken areas at coast and noise. KEEP IN MIND: CHECK VALUE IF TOO BIG SUCH THAT REAL AREAS ARE REMOVED
     # Do this only for polymax -- the minimum would remove real areas, patches like East of Svalbard. Polymin selects here all polygons basically
     print "Select large polygon, ignoring the small ones"
-    os.system('ogr2ogr -progress '+ outshape_polymax + ' ' + outshape_tempmax + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 10000000000.0"')
-    os.system('ogr2ogr -progress '+ outshape_polymin + ' ' + outshape_tempmin + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmin WHERE DN=1 AND OGR_GEOM_AREA > 10.0"')
+    os.system('ogr2ogr -progress '+ outshape_polymax + ' ' + tmpShapeFiles["icechart_temp1max.shp"] + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 10000000000.0"')
+    os.system('ogr2ogr -progress '+ outshape_polymin + ' ' + tmpShapeFiles["icechart_temp1min.shp"] + ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmin WHERE DN=1 AND OGR_GEOM_AREA > 10.0"')
     
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2max + ' ' + outshape_polymax)
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2min + ' ' + outshape_polymin)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + tmpShapeFiles["icechart_temp2max.shp"] + ' ' + outshape_polymax)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + tmpShapeFiles["icechart_temp2min.shp"] + ' ' + outshape_polymin)
     
     # Remove coast line from ice edge by clipping with coastline
     # Prerequisite: Create NISDC coast line mask ( ogr2ogr -progress C:\Users\max\Desktop\NSIDC_oceanmask.shp C:\Users \max\Desktop\temp.shp
     # -sql "SELECT *, OGR_GEOM_AREA FROM temp WHERE DN<250 )
     # use "dissolve" to get ocean only with one value and the run buffer -5000m such that coast line does not match but overlaps ice polygon
     # because only then it is clipped
-    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemax + ' ' + outshape_temp2max)
-    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemin + ' ' + outshape_temp2min)
-    
-    #Cleaning up temporary files 
-    os.remove(outshape_tempmax)
-    os.remove(outshape_tempmax2)
-    os.remove(outshape_tempmax3)
-    os.remove(outshape_tempmax4)
-    os.remove(outshape_tempmin)
-    os.remove(outshape_tempmin2)
-    os.remove(outshape_tempmin3)
-    os.remove(outshape_tempmin4)
-    os.remove(outshape_temp2max)
-    os.remove(outshape_temp2max2)
-    os.remove(outshape_temp2max3)
-    os.remove(outshape_temp2max4)
-    os.remove(outshape_temp2min)
-    os.remove(outshape_temp2min2)
-    os.remove(outshape_temp2min3)
-    os.remove(outshape_temp2min4)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemax + ' ' + tmpShapeFiles["icechart_temp2max.shp"])
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_linemin + ' ' + tmpShapeFiles["icechart_temp2min.shp"])
+
+    ############
+    # Clean Temporary ShapeFiles
+    ############
+
+    RemoveFilesByDictionary(tmpShapeFiles)
     
     ##########
     # ADDING BALTIC SEA
@@ -553,26 +540,30 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     print '\n Add Baltic Sea Ice.'
     
     #polygonice only Baltic Sea
-    os.system('gdal_polygonize.py ' + outfilemax + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + outshape_tempmax )    
-    os.system('gdal_polygonize.py ' + outfilemin + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + outshape_tempmin )    
+    os.system('gdal_polygonize.py ' + outfilemax + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + tmpShapeFiles["icechart_temp1max.shp"] )    
+    os.system('gdal_polygonize.py ' + outfilemin + ' -mask ' + NSIDC_balticmask + ' -f "ESRI Shapefile" ' + tmpShapeFiles["icechart_temp1min.shp"] )    
         
     # Add Baltic to existing polymax and polymin 
-    os.system('ogr2ogr -update -append ' + outshape_polymax + ' ' +   outshape_tempmax +  ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 20000000000.0"')
-    os.system('ogr2ogr -update -append ' + outshape_polymin + ' ' +   outshape_tempmin +  ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmin WHERE DN=1"')
+    os.system('ogr2ogr -update -append ' + outshape_polymax + ' ' +   tmpShapeFiles["icechart_temp1max.shp"] +  ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmax WHERE DN=1 AND OGR_GEOM_AREA > 20000000000.0"')
+    os.system('ogr2ogr -update -append ' + outshape_polymin + ' ' +   tmpShapeFiles["icechart_temp1min.shp"] +  ' -sql "SELECT *, OGR_GEOM_AREA FROM icechart_tempmin WHERE DN=1"')
     
     # Convert polygon to lines
     print 'Convert ice edge map to Linestring Map'
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2max + ' ' + outshape_polymax)
-    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + outshape_temp2min + ' ' + outshape_polymin)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + tmpShapeFiles["icechart_temp2max.shp"] + ' ' + outshape_polymax)
+    os.system('ogr2ogr -progress -nlt LINESTRING -where "DN=1" ' + tmpShapeFiles["icechart_temp2min.shp"] + ' ' + outshape_polymin)
     
     #clip coast as above
-    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_temp3max + ' ' + outshape_temp2max)
-    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  outshape_temp3min + ' ' + outshape_temp2min)
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  tmpShapeFiles["icechart_temp3max.shp"] + ' ' + tmpShapeFiles["icechart_temp2max.shp"])
+    os.system('ogr2ogr -progress -clipsrc ' + oceanmask_buffer5 + ' ' +  tmpShapeFiles["icechart_temp3min.shp"] + ' ' + tmpShapeFiles["icechart_temp2min.shp"])
     
     # Add Baltic line to existing min/max line
-    os.system('ogr2ogr -update -append ' + outshape_linemax + ' ' +   outshape_temp3max )
-    os.system('ogr2ogr -update -append ' + outshape_linemin + ' ' +   outshape_temp3min )
-    
+    os.system('ogr2ogr -update -append ' + outshape_linemax + ' ' +   tmpShapeFiles["icechart_temp3max.shp"] )
+    os.system('ogr2ogr -update -append ' + outshape_linemin + ' ' +   tmpShapeFiles["icechart_temp3min.shp"] )
+
+    ####################
+    # Clean Temporary ShapeFiles
+    ###################
+    RemoveFilesByDictionary(tmpShapeFiles)
 
     #########
     # REDO MAX MIN RASTER
@@ -633,34 +624,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outbandmin.FlushCache()
     landmask = None
     landraster = None
-        
-    #Cleaning up temporary files 
-    os.remove(outshape_tempmax)
-    os.remove(outshape_tempmax2)
-    os.remove(outshape_tempmax3)
-    os.remove(outshape_tempmax4)
-    os.remove(outshape_tempmin)
-    os.remove(outshape_tempmin2)
-    os.remove(outshape_tempmin3)
-    os.remove(outshape_tempmin4)
-    os.remove(outshape_temp2max)
-    os.remove(outshape_temp2max2)
-    os.remove(outshape_temp2max3)
-    os.remove(outshape_temp2max4)
-    os.remove(outshape_temp2min)
-    os.remove(outshape_temp2min2)
-    os.remove(outshape_temp2min3)
-    os.remove(outshape_temp2min4)
-    os.remove(outshape_temp3max)
-    os.remove(outshape_temp3max2)
-    os.remove(outshape_temp3max3)
-    os.remove(outshape_temp3max4)
-    os.remove(outshape_temp3min)
-    os.remove(outshape_temp3min2)
-    os.remove(outshape_temp3min3)
-    os.remove(outshape_temp3min4)
-    
-    
+
     #Reproject to EPSG:3575
     ReprojectShapefile(outshape_polymax)
     ReprojectShapefile(outshape_polymin)
