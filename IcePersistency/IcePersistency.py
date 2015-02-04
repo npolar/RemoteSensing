@@ -123,7 +123,7 @@ def Bin2GeoTiff(infile,outfilepath ):
     #####
     EPSG3411_2_EPSG3575(outfile)
 
-def BurnNonIce(inputArray, outputArray, maskList = [251, 252, 253, 254, 255])
+def BurnNonIce(inputArray, outputArray, maskList = [251, 252, 253, 254, 255]):
     '''
     Copies the non ice values of the inputArray into the outputArray. Mask values are
     defined by the maskValues list. If maskValues isn't defined it we'll use the
@@ -151,7 +151,7 @@ def GenerateTemporaryShapefileDict(filepath, basename="tmpShape", numberOfTmpFil
     return tmpShapeFiles
 
 # Removes files defined in a dictionary from the filesystem
-def RemoveFilesByDictionary(fileDictionary)
+def RemoveFilesByDictionary(fileDictionary):
     for key in fileDictionary.iterkeys():
         # Check if file exists before we try to remove it
         if os.path.isfile(fileDictionary[key]):
