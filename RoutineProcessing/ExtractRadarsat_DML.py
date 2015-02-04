@@ -137,13 +137,21 @@ def ProcessNest(radarsatfile, Terraincorrection):
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
-        destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
-        #auxfile is created automatically by NEST, name defined to remove it        
-        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif.aux.xml'
-        destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
-        jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
+        if Terraincorrection == 'YES':
+            destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
+            #auxfile is created automatically by NEST, name defined to remove it        
+            auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif.aux.xml'
+            destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
+            jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
+            jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
         
-        #jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
+        else:
+            destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif'
+            #auxfile is created automatically by NEST, name defined to remove it        
+            auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif.aux.xml'
+            destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif'
+            jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.jpg'
+            jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '_SMALL.jpg'
         
         print
         print 'Converting: '
@@ -157,7 +165,7 @@ def ProcessNest(radarsatfile, Terraincorrection):
         #os.system("gdaladdo -r NEAREST -ro " + destinationfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create JPG
-        os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
+        os.system("gdal_translate -scale -20 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
         os.system("gdaladdo -r NEAREST -ro " + jpegfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create small jpeg
@@ -178,8 +186,8 @@ def ProcessNest(radarsatfile, Terraincorrection):
 
 
 # Define filelist to be processed (radarsat zip files)
-#Terraincorrection = 'YES'
-Terraincorrection = 'NO'
+Terraincorrection = 'YES'
+#Terraincorrection = 'NO'
 
 
 
