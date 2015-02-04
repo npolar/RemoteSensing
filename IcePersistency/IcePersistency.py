@@ -468,7 +468,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     #load outbandmin once more and burn landmask again since sieve influences coastline
     outarraymax = outrastermax.ReadAsArray()
 
-    'NOTE!!! Is there a reason why the missing data mask is ignored here?'
+    # NOTE!!! Is there a reason why the missing data mask is ignored here?
     outarraymax = BurnNonIce(landraster, outarraymax, [251, 252, 253, 254])
 
     outbandmax = outrastermax.GetRasterBand(1)    
