@@ -152,10 +152,10 @@ def GenerateTemporaryShapefileDict(filepath, basename="tmpShape", numberOfTmpFil
 
 # Removes files defined in a dictionary from the filesystem
 def RemoveFilesByDictionary(fileDictionary):
-    for key in fileDictionary.iterkeys():
+    for filePath in fileDictionary.itervalues():
         # Check if file exists before we try to remove it
-        if os.path.isfile(fileDictionary[key]):
-            os.remove(fileDictionary[key])
+        if os.path.isfile(filePath):
+            os.remove(filePath)
     
 def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
     '''
