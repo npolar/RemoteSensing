@@ -37,55 +37,10 @@ ISSUES AT PRESENT:
 
 
 
-import zipfile, glob, os, shutil
+import zipfile, glob, os, shutil, gdal, fnmatch, pyproj, gdalconst, osr
 
-def RadarsatDetailedQuicklook(radarsatfile):
-    
-    #Split names and extensions
-    (infilepath, infilename) = os.path.split(radarsatfile)
-    (infileshortname, extension) = os.path.splitext(infilename)
-    
-    #Open zipfile
-    zfile = zipfile.ZipFile(radarsatfile, 'r')
-    print    
-    print "Decompressing image for " + infilename + " on " + infilepath    
-    
 
-    #zfile.extract(imagefile, infilepath)  
-    zfile.extractall(infilepath)
-    
-    #Define names
-    #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
-    gdalsourcefile = infilepath + '\\' + infileshortname + '\\product.xml'
-    outputfilename = infilepath + '\\' + infileshortname + '_temp_EPSG3031.tif'
-    browseimage = infilepath + '\\' + infileshortname + '_EPSG3031.tif'
-    
-    #Call gdalwarp
-    print
-    print "map projecting file"
-    print
-    os.system('gdalwarp -tps  -t_srs \"+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs \" ' + gdalsourcefile + ' ' + outputfilename )  
-    
-    
-    #Call gdaltranslate to downsample and overwrite the original file 
-    print
-    print "downsampling file"
-    print
-    os.system('gdal_translate -ot byte -outsize 8% 8% -scale 0 30000 0 255 ' + outputfilename + ' ' + browseimage )
-
-    #Remove folder where extracted and temporary files are stored
-    shutil.rmtree(infilepath + '\\' + infileshortname )
-
-    #Close zipfile
-    zfile.close()
-    
-    #return name of quicklookfile so that it can be deleted at the end
-    os.remove(outputfilename)
-    return browseimage    
-    
-    
-
-def ProcessNest(radarsatfile):
+def ProcessNest(radarsatfile, Terraincorrection):
     '''
     Calls Nest SAR Toolbox to calibrate, map project and if wanted 
     terraincorrect images
@@ -97,16 +52,18 @@ def ProcessNest(radarsatfile):
     Map Projection Barents Sea EPSG:3575
     Map Projection DML EPSG:3033 --> EPSG:3031 is wanted but NEST error using this
     '''
-    
-
-    
+        
     #Various file paths and names:    
     (radarsatfilepath, radarsatfilename) = os.path.split(radarsatfile)             
     (radarsatfileshortname, extension) = os.path.splitext(radarsatfilename) 
     
     #Define names of input and outputfile
     gdalsourcefile = radarsatfilepath + '\\' + radarsatfileshortname + '\\product.xml'
-    outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3033.dim'
+    if Terraincorrection == 'YES':
+        outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031.dim'
+    else:
+        outputfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031.dim'
+    
     
     #Extract the zipfile
     zfile = zipfile.ZipFile(radarsatfile, 'r')
@@ -119,7 +76,7 @@ def ProcessNest(radarsatfile):
     
     #Call NEST routine
     print
-    print "calibration and speckle and SARSIM"
+    print "Terrain Correction"
     print
     print "inputfile " + radarsatfileshortname
     print "outputfile " + outputfile
@@ -130,9 +87,35 @@ def ProcessNest(radarsatfile):
     
     #check that xml file is correct!
     
+    if "SLC" in radarsatfile:
+        SLC = 'YES'
+    else:
+        SLC = 'NO'
+        
     #Process using NEST
-    os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
-            
+    #os.system(r'gpt C:\Users\max\Desktop\Calib_Spk_reproj_LinDB_Barents3031TEST.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    #TERRAIN CORRECTION:    
+    if  Terraincorrection == 'YES':
+        
+        if "_U" in radarsatfile:
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_Ultrafine_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+        if "_SC" in radarsatfile:                
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+        if "_F" in radarsatfile:
+            if SLC == 'YES':
+                os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\ML_Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+
+            else:
+                os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_TC_GETASSE_FINE_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    else:
+        if SLC == 'YES':
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\ML_Calib_Spk_reproj_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    
+        else:
+            os.system(r'gpt C:\Users\max\Documents\PythonProjects\Nest\Calib_Spk_reproj_LinDB_DML.xml -Pfile=" ' + gdalsourcefile + '"  -Tfile="'+ outputfile + '"' )
+    
+    
+    
     
     #Remove folder where extracted and temporary files are stored
     shutil.rmtree(radarsatfilepath + '\\' + radarsatfileshortname )
@@ -154,13 +137,21 @@ def ProcessNest(radarsatfile):
     #Loop through Sigma*.img files and convert to GeoTIFF and JPG
     for envifile in dimlist:
         polarisation = envifile[-9:-7]
-        destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3033_' + polarisation + '.tif'
-        #auxfile is created automatically by NEST, name defined to remove it        
-        auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3033_' + polarisation + '.tif.aux.xml'
-        destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
-        jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
+        if Terraincorrection == 'YES':
+            destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
+            #auxfile is created automatically by NEST, name defined to remove it        
+            auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif.aux.xml'
+            destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.tif'
+            jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '.jpg'
+            jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
         
-        jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_TC_EPSG3031_' + polarisation + '_SMALL.jpg'
+        else:
+            destinationfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif'
+            #auxfile is created automatically by NEST, name defined to remove it        
+            auxfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif.aux.xml'
+            destinationfile2 = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.tif'
+            jpegfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '.jpg'
+            jpegsmallfile = radarsatfilepath + '\\' + radarsatfileshortname + '_Cal_Spk_reproj_EPSG3031_' + polarisation + '_SMALL.jpg'
         
         print
         print 'Converting: '
@@ -169,22 +160,18 @@ def ProcessNest(radarsatfile):
         
         
         #Convert to GeoTIFF
-        os.system("gdal_translate -a_nodata None -a_srs EPSG:3033 -of GTiff " + envifile + " " +  destinationfile)
-        
-        
-        #Reproject to EPSG 3031
-        os.system("gdalwarp -s_srs EPSG:3033 -t_srs \"+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs \" -srcnodata none -dstnodata 999.0 " + destinationfile + " " +  destinationfile2)
-        os.system("gdaladdo -r NEAREST -ro " + destinationfile2 + " 2 4 8 16 32 64")  #Build overviews
+        os.system("gdal_translate -a_srs EPSG:3031 -stats -of GTiff " + envifile + " " +  destinationfile)
+        #Build overviews
+        #os.system("gdaladdo -r NEAREST -ro " + destinationfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create JPG
-        os.system("gdal_translate -scale -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile2 + " " +  jpegfile) 
+        os.system("gdal_translate -scale -20 0 0 255 -ot Byte -co WORLDFILE=YES -of JPEG " + destinationfile + " " +  jpegfile) 
         os.system("gdaladdo -r NEAREST -ro " + jpegfile + " 2 4 8 16 32 64")  #Build overviews
         
         #Create small jpeg
-        os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
+        #os.system("gdal_translate -outsize 8% 8% -co WORLDFILE=YES -of JPEG " + jpegfile + " " + jpegsmallfile)
         
-        #Remove original GeoTIFF in 3033 since we now have 3031
-        os.remove(destinationfile)
+
         
     #Remove BEAM-DIMAP files from NEST    
     shutil.rmtree(dim_datafolder)
@@ -199,23 +186,27 @@ def ProcessNest(radarsatfile):
 
 
 # Define filelist to be processed (radarsat zip files)
-#filelist = glob.glob(r'Z:\Radarsat\2013\RS2_20131126_012545_0041*.zip')
-filelist = glob.glob(r'Z:\Radarsat\2014\RS2_2014011*.zip')
+Terraincorrection = 'YES'
+#Terraincorrection = 'NO'
 
+
+
+filelist = glob.glob(r'G:\satellittdata\DML\RS2_20150126_*.zip')
 
 #Loop through filelist and process
 for radarsatfile in filelist:
     
-    #Create Quicklook from which area is determined (not very good solution)
-    outputfile = RadarsatDetailedQuicklook(radarsatfile)
-    
-    print radarsatfile + ' processed'
+   
+    print 'processing ', radarsatfile 
     #Process image
-    ProcessNest(radarsatfile)
+    ProcessNest(radarsatfile, Terraincorrection)
     
     #Remove quicklook as jpeg now available as quicklook
-    os.remove(outputfile)
-
+    try:
+        os.remove(outputfile)
+    except:
+        pass
+    
 print 'finished extracting DML images'
 
 

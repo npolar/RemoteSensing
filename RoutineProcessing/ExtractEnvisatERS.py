@@ -20,17 +20,18 @@ def EnvisatERSDetailedQuicklook_CEOS(envisatfile):
     #Define names
     #gdalsourcefile = infilepath + '\\' + infileshortname + '\\imagery_HH.tif'
     gdalsourcefile = envisatfile
-    outputfilename = infilepath + '\\' + infilepath[-40:-7] + 'temp_EPSG32633.tif'
-    
+    #outputfilename = infilepath + '\\' + infilepath[-40:-7] + 'temp_EPSG32633.tif'
+    outputfilename = 'Z:\\' + infilepath[-34:-7] + 'temp_EPSG32633.tif'
     split = envisatfile.split("\\")
     
-    browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infilepath[-40:-7] + '_EPSG32633.jpg'
-    
+    #browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infilepath[-40:-7] + '_EPSG32633.jpg'
+    browseimage = split[0] + '//' + split[1] + '//'  + split[2] + '_EPSG3575.jpg'
     #Call gdalwarp
     print
     print "map projecting file"
+    print gdalsourcefile, outputfilename, browseimage
     print
-    os.system('gdalwarp -tps  -t_srs EPSG:32633 ' + gdalsourcefile + ' ' + outputfilename )  
+    os.system('gdalwarp -tps  -t_srs EPSG:3575 ' + gdalsourcefile + ' ' + outputfilename )  
     
     
     #Call gdaltranslate    
@@ -40,8 +41,9 @@ def EnvisatERSDetailedQuicklook_CEOS(envisatfile):
     os.system('gdal_translate -of JPEG -ot byte -outsize 20% 20% -scale 0 1000 0 255 ' + outputfilename + ' ' + browseimage )
     
     #Remove folder where extracted and temporary files are stored
-    os.remove(outputfilename)
     
+    #os.remove(outputfilename)
+
     #Close zipfile
 
 
@@ -67,25 +69,29 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
     
     split = envisatfile.split("\\")
     
-    browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infileshortname + '_EPSG32633.jpg'
+    #browseimage = split[0] + '\\' + split[1] + "\\" + split[2] + "\\" + split[3] + "\\" + infileshortname + '_EPSG32633.jpg'
+    browseimage = split[0] + '\\'+ split[1] + '\\'  + infileshortname + '_EPSG32633.jpg'
     
     #Call gdalwarp
     print
     print "map projecting file"
     print
+    
     os.system('gdalwarp -tps  -t_srs EPSG:32633 ' + gdalsourcefile + ' ' + outputfilename )  
-    
-    
+
     #Call gdaltranslate    
     print
     print "downsampling file"
     print
+    
     os.system('gdal_translate -of JPEG -ot byte -b 1 -outsize 20% 20% -scale 0 1000 0 255 ' + outputfilename + ' ' + browseimage )
     
+    
     #Remove folder where extracted and temporary files are stored
+    
     os.remove(outputfilename)
     
-    #Close zipfile
+        #Close zipfile
 
 
 
@@ -101,23 +107,23 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
 #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
 #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
 filelist_CEOS = []
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
+for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2010'):
   for filename in fnmatch.filter(filenames, 'DAT_01.001'):
       filelist_CEOS.append(os.path.join(root, filename))
 
 filelist_E1E2 = []
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
+for root, dirnames, filenames in os.walk('Z:\ERS_Envisat_SAR\Arctic\2010'):
   for filename in fnmatch.filter(filenames, '*.E1'):
       filelist_E1E2.append(os.path.join(root, filename))      
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
+for root, dirnames, filenames in os.walk('Z:\ERS_Envisat_SAR\Arctic\2010'):
   for filename in fnmatch.filter(filenames, '*.E2'):
       filelist_E1E2.append(os.path.join(root, filename))  
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2005'):
+for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2010'):
   for filename in fnmatch.filter(filenames, '*.N1'):
       filelist_E1E2.append(os.path.join(root, filename)) 
 
     
-outputfilepath = 'C:\\Users\\max\\Documents\\processed_Envisat'
+outputfilepath = 'Z:\\ERS_Envisat_SAR\\Arctic\\2010'
 
 
 #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
