@@ -45,11 +45,5 @@ for entry in range(len(entries)):
     data =  downloadfile.read()
     with open(destinationpath, "wb") as code:
         code.write(data)
-    #destinationfile.open(destinationpath, wb)
-    #destinationfile.write(data)
-    
-    #sentinelimage.retrieve(Sentinel_link, "/home/max/Documents/SentinelDownloads/")
-    
 
-    
-    
+print "Done Downloading"		
