@@ -13,17 +13,6 @@ import xml.etree.ElementTree as etree
 url = urllib.quote('https://scihub.esa.int/dhus/search?q=productType:GRD AND ingestionDate:[2015-09-30T00:00:00.000Z TO 2015-09-30T23:59:59.999Z] AND footprint:"Intersects(POLYGON((-16.11154750824 69.190260085686,-2.7521725082398 69.190260085686,-2.7521725082398 76.370271635301,-16.11154750824 76.370271635301,-16.11154750824 69.190260085686)))"&rows=10000&start=0', ':()[]/?=,&')
 url2 =  'https://scihub.esa.int/dhus/'
 
-
-
-#url = 'https://scihub.esa.int/dhus/search?q=productType:GRD%20AND%20ingestionDate:[2015-09-21T00:00:00.000Z%20TO%202015-09-30T23:59:59.999Z]%20AND%20footprint:%22Intersects(POLYGON((-16.11154750824%2069.190260085686,-2.7521725082398%2069.190260085686,-2.7521725082398%2076.370271635301,-16.11154750824%2076.370271635301,-16.11154750824%2069.190260085686)))%22&rows=10000&start=0%27'
-#url = urllib.quote_plus('https://scihub.esa.int/dhus/search?q=productType:GRD&start=0&rows=10000')
-#url = 'https://scihub.esa.int/dhus/search?q=productType:GRD&start=0&rows=10000'
-#url1 =  'https://scihub.esa.int/dhus/'
-#url2 = urllib.quote_plus('search?q=productType:GRD AND ingestionDate:[2015-09-21T00:00:00.000Z TO 2015-09-30T23:59:59.999Z] AND footprint:"Intersects(POLYGON((-16.11154750824 69.190260085686,-2.7521725082398 69.190260085686,-2.7521725082398 76.370271635301,-16.11154750824 76.370271635301,-16.11154750824 69.190260085686)))"&start=0&rows=10000')
-#url = url1 + url2
-#url = 'https://scihub.esa.int/dhus/search?q=productType:GRD&start=0&rows=1000'
-#url = r'https://scihub.esa.int/dhus/search?q=productType:GRD AND footprint:"Intersects(POLYGON((-16.11154750824 69.190260085686,-2.7521725082398 69.190260085686,-2.7521725082398 76.370271635301,-16.11154750824 76.370271635301,-16.11154750824 69.190260085686))"'
-#url = r'https://scihub.esa.int/dhus/search?q=productType:GRD AND ingestionDate:[2015-09-21T00:00:00.000Z TO 2015-09-30T23:59:59.999Z]&start=0&rows=10000'
 # Download matching images, described here http://stackoverflow.com/a/11162326/2341961
 username = 'username'
 password = 'password'
