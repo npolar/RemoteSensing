@@ -31,6 +31,62 @@ def CheckLocation(sarfile, location, locationEPSG):
                                  location[0], location[1])
     lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
                                  location[0], location[1])
+    
+    # Get corner coordinates of sarfile
+    geotrans = dataset.GetGeoTransform()
+    cols = dataset.RasterXSize
+    rows = dataset.RasterYSize
+    
+    sar_upperleft_x = geotrans[0]
+    sar_upperleft_y = geotrans[3]
+    pixelwidth  = geotrans[1]
+    pixelheight = geotrans[5]
+    sar_lowerright_x = sar_upperleft_x + pixelwidth  * cols
+    sar_lowerright_y = sar_upperleft_y + pixelheight * rows                            
+                                 
+    wkt_location = "POLYGON((" + str(upperleft_x) + " " +  str(upperleft_y) + "," \
+                  + str(upperleft_x) + " "  + str(lowerright_y) + \
+                  "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
+                  + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
+                  
+    wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
+                  + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
+                  "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
+                  + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
+    
+    print wkt_location
+    print wkt_sarimage
+    poly_location = ogr.CreateGeometryFromWkt(wkt_location)
+    poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
+    contained = poly_location.Intersect(poly_sarimage)
+    print contained
+    return contained
+    
+
+def CheckLocationOLD(sarfile, location, locationEPSG):
+    """
+    Checks of the area of interest defined by location is contained in sarfile
+    sarfile is a map projected jpeg, the xml file containing the projection 
+    needs to be in the same location as sarfile
+    """
+    
+    # Open sarfile where area of interest is to be contained
+    driver = gdal.GetDriverByName("JPEG")
+    driver.Register()
+    dataset = gdal.Open(sarfile, gdal.GA_ReadOnly)   
+    
+    #Determine EPSG of the quicklook
+    datasetEPSG = 'EPSG:' + dataset.GetProjectionRef()[-7:-3]
+        
+    # Define projections
+    datasetEPSG  = pyproj.Proj("+init=" + datasetEPSG)
+    locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
+    
+    #Transform coordinates of location into sarfile coordinates
+    upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
+                                 location[0], location[1])
+    lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
+                                 location[0], location[1])
         
     # Get corner coordinates of sarfile
     geotrans = dataset.GetGeoTransform()
@@ -305,8 +361,8 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC):
 ### input Variables ###
 
 # Map projection of output files
-outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
-#outputEPSG = 'EPSG:3575'  # Barents Sea and Framstrait
+#outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
+outputEPSG = 'EPSG:3575'  # Barents Sea and Framstrait
 #outputEPSG = 'EPSG:3031'  #Dronning Maud Land
 
 # Map projection of Quicklooks
@@ -314,19 +370,19 @@ quicklookEPSG = 'EPSG:3575'
 #quicklookEPSG = 'EPSG:3031'
 
 # Do you want Terrain Correction?
-TC = True
-#TC = False
+#TC = True
+TC = False
 
 # Define Area of interest in outputEPSG
-# Austfonna EPSG32633
+# Austfonna EPSG32633 Surge
 upperleft_x  =  651500.0
 upperleft_y  = 8891000.0
 lowerright_x =  740000.0
 lowerright_y = 8800881.0
 
 # If location is set to [], only quicklooks will be created
-location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
-#location = []
+#location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
+location = []
 
 # SCWA output resolution 50m
 outputresolution = 50
@@ -341,8 +397,8 @@ while year <= 2015:
     #        dir_mode=0755,uid=max,gid=max
 
     #inputfolder = "Z:\\Sentinel-1\\ArcticOceanSvalbard\\2015"
-    inputfolder = "G:\\Austfonna" 
-    #inputfolder = "G:\\satellittdata\\flerbrukBarents"
+    #inputfolder = "G:\\Austfonna" 
+    inputfolder = "G:\\satellittdata\\flerbrukBarents"
     #inputfolder = "G:\\temp"      
     #inputfolder = "Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2015"    
     #inputfolder  = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2015//01_January"
@@ -351,8 +407,8 @@ while year <= 2015:
     #outputfolder = "//home//max//Documents//SARtestDML"
     #outputfolder = "//media//max//Transcend//SARtest"
     #outputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//processed_images//Austfonna"
-    outputfolder = "G:\\Austfonna\\output"
-    #outputfolder = "G:\\satellittdata\\flerbrukBarents"
+    #outputfolder = "G:\\Austfonna\\output"
+    outputfolder = "G:\\satellittdata\\flerbrukBarents"
     #outputfolder = "G:\\temp"  
     
     # Create list containing all zip files to be processed
@@ -374,7 +430,6 @@ while year <= 2015:
         (sarfileshortname, extension)  = os.path.splitext(sarfilename)
         quicklookname = sarfilepath + '//' + sarfileshortname + \
                          "_Cal_Spk_reproj_EPSG" + quicklookEPSG[5:] + "_*.jpg"
-        print quicklookname
         #quicklooknames for all polarisations indicated with *        
         quicklooklist = glob.glob(quicklookname)
         existingquicklook = ''        
@@ -387,17 +442,15 @@ while year <= 2015:
                 
         # If no quicklook, create it           
         if existingquicklook == '':
-            CreateQuicklook(sarfile, inputfolder, quicklookEPSG)
+            CreateQuicklook(sarfile, sarfilepath, quicklookEPSG)
         # discontinue this file if quicklook creation failed
+        quicklooklist = glob.glob(quicklookname)
         for quicklook in quicklooklist:
             if os.path.exists(quicklook):
-                print "quicklook exists now"
                 existingquicklook = quicklook
                 break
-        print "quicklook1 ", existingquicklook
         if existingquicklook == '':
             continue
-        print "quicklook2 ", existingquicklook
         # Check if AOI extract is wanted       
         if location == []:
             continue
