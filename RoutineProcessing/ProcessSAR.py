@@ -13,54 +13,98 @@ def CheckLocation(sarfile, location, locationEPSG):
     sarfile is a map projected jpeg, the xml file containing the projection 
     needs to be in the same location as sarfile
     """
+
     
-    # Open sarfile where area of interest is to be contained
-    driver = gdal.GetDriverByName("JPEG")
-    driver.Register()
-    dataset = gdal.Open(sarfile, gdal.GA_ReadOnly)   
+    #Various file paths and names:    
+    (sarfilepath, sarfilename)    = os.path.split(sarfile)             
+    (sarfileshortname, extension) = os.path.splitext(sarfilename)  
     
-    #Determine EPSG of the quicklook
-    datasetEPSG = 'EPSG:' + dataset.GetProjectionRef()[-7:-3]
+    xml_file = sarfileshortname + "/product.xml"
+    xml_file_extracted = outputfolder + "//" + xml_file 
+
+    #Extract the zipfile, skip if corrupt
+    
+    zfile = zipfile.ZipFile(sarfile, 'r')
+    zfile.extract(xml_file, outputfolder )
+    zfile.close()
         
+    
+    tree = etree.parse(xml_file_extracted)
+    root = tree.getroot()
+   
+
+    for attributes in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}rasterAttributes'):
+        attribute_list = attributes.getchildren()
+        for attribute in attribute_list:
+            if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfSamplesPerLine":
+                numberOfSamplesPerLine = float(attribute.text) - 1
+            if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfLines":
+                numberOfLines = float(attribute.text) - 1
+        #numberOfSamplesPerLine =  float(attribute_list[2].text) -1
+        #numberOfLines = float(attribute_list[3].text) -1
+    
+    
+    for tiepoint in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}imageTiePoint'):
+        child_list = tiepoint.getchildren()
+        
+        line      = float(child_list[0][0].text)
+        pixel     = float(child_list[0][1].text)
+        latitude  = float(child_list[1][0].text)
+        longitude = float(child_list[1][1].text)
+        
+        
+        #check if upper left
+        if (line == 0.0) and (pixel == 0.0):
+            sar_upperleft_x = longitude
+            sar_upperleft_y = latitude
+        
+        #check if upper right
+        if (line == 0.0) and (pixel == numberOfSamplesPerLine):
+            sar_upperright_x = longitude
+            sar_upperright_y = latitude
+            
+                
+        #check if lower left    
+        if (line == numberOfLines) and (pixel == 0.0):
+            sar_lowerleft_x = longitude
+            sar_lowerleft_y = latitude
+            
+                
+        #check if upper right
+        if (line == numberOfLines) and (pixel == numberOfSamplesPerLine):
+            sar_lowerright_x = longitude
+            sar_lowerright_y = latitude
+
+        
+
+    wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
+                  + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
+                  "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
+                  + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
+    print wkt_sarimage
     # Define projections
-    datasetEPSG  = pyproj.Proj("+init=" + datasetEPSG)
+    datasetEPSG  = pyproj.Proj("+init=EPSG:4326")
     locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
     
     #Transform coordinates of location into sarfile coordinates
     upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
                                  location[0], location[1])
     lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])
-    
-    # Get corner coordinates of sarfile
-    geotrans = dataset.GetGeoTransform()
-    cols = dataset.RasterXSize
-    rows = dataset.RasterYSize
-    
-    sar_upperleft_x = geotrans[0]
-    sar_upperleft_y = geotrans[3]
-    pixelwidth  = geotrans[1]
-    pixelheight = geotrans[5]
-    sar_lowerright_x = sar_upperleft_x + pixelwidth  * cols
-    sar_lowerright_y = sar_upperleft_y + pixelheight * rows                            
-                                 
+                                 location[0], location[1])   
     wkt_location = "POLYGON((" + str(upperleft_x) + " " +  str(upperleft_y) + "," \
                   + str(upperleft_x) + " "  + str(lowerright_y) + \
                   "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
                   + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
                   
-    wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
-                  + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
-                  "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
-                  + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
+    print wkt_location            
     
-    print wkt_location
-    print wkt_sarimage
     poly_location = ogr.CreateGeometryFromWkt(wkt_location)
     poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
     contained = poly_location.Intersect(poly_sarimage)
     print contained
+    os.remove(xml_file_extracted)
     return contained
+    
     
 
 def CheckLocationOLD(sarfile, location, locationEPSG):
