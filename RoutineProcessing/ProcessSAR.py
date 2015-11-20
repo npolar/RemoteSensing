@@ -5,13 +5,15 @@ Created on Thu Aug 27 08:48:44 2015
 @author: max
 """
 import os, fnmatch, pyproj, gdal, zipfile, glob, shutil
-
+import xml.etree.ElementTree as etree  
 
 def CheckLocation(sarfile, location, locationEPSG):
     """
     Checks of the area of interest defined by location is contained in sarfile
     sarfile is a map projected jpeg, the xml file containing the projection 
     needs to be in the same location as sarfile
+    
+    THIS VERSION FINALLY WITH INTERSECT OF POLYGONS OGR
     """
 
     
@@ -106,61 +108,6 @@ def CheckLocation(sarfile, location, locationEPSG):
     return contained
     
     
-
-def CheckLocationOLD(sarfile, location, locationEPSG):
-    """
-    Checks of the area of interest defined by location is contained in sarfile
-    sarfile is a map projected jpeg, the xml file containing the projection 
-    needs to be in the same location as sarfile
-    """
-    
-    # Open sarfile where area of interest is to be contained
-    driver = gdal.GetDriverByName("JPEG")
-    driver.Register()
-    dataset = gdal.Open(sarfile, gdal.GA_ReadOnly)   
-    
-    #Determine EPSG of the quicklook
-    datasetEPSG = 'EPSG:' + dataset.GetProjectionRef()[-7:-3]
-        
-    # Define projections
-    datasetEPSG  = pyproj.Proj("+init=" + datasetEPSG)
-    locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
-    
-    #Transform coordinates of location into sarfile coordinates
-    upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])
-    lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])
-        
-    # Get corner coordinates of sarfile
-    geotrans = dataset.GetGeoTransform()
-    cols = dataset.RasterXSize
-    rows = dataset.RasterYSize
-    
-    sar_upperleft_x = geotrans[0]
-    sar_upperleft_y = geotrans[3]
-    pixelwidth  = geotrans[1]
-    pixelheight = geotrans[5]
-    sar_lowerright_x = sar_upperleft_x + pixelwidth  * cols
-    sar_lowerright_y = sar_upperleft_y + pixelheight * rows
-    
-    # Check if area of interest is contained in sarfile
-    contained = False
-    if ((sar_upperleft_x < upperleft_x < sar_lowerright_x) and \
-          (sar_upperleft_x < lowerright_x < sar_lowerright_x)):
-       if((sar_upperleft_y > upperleft_y > sar_lowerright_y) and \
-          (sar_upperleft_y > lowerright_y > sar_lowerright_y)):
-           contained = True
-           print os.path.split(sarfile)[1], " matches."
-       else:
-           contained = False
-           print os.path.split(sarfile) [1], " does not match."
-    
-    dataset = None
-    return contained
-    
-
-
 def CreateQuicklook(sarfile, outputfilepath, quicklookEPSG):
     '''
     Creates quicklooks from Radarsat and Sentinel-1 files
@@ -499,7 +446,7 @@ while year <= 2015:
         if location == []:
             continue
         
-        contained = CheckLocation(existingquicklook, location, outputEPSG)           
+        contained = CheckLocation(sarfile, location, outputEPSG, outputfolder)           
         if contained == True:
             ProcessSAR(sarfile, outputfolder, location, outputresolution,\
                             outputEPSG, TC)
