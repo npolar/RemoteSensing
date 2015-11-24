@@ -21,40 +21,47 @@ def CheckLocation(sarfile, location, locationEPSG):
     (sarfilepath, sarfilename)    = os.path.split(sarfile)             
     (sarfileshortname, extension) = os.path.splitext(sarfilename)  
     
+    #Get metadata dependent on satellite sensor
     if "RS2" in sarfile:
         #Path to product.xml-file within zipped Radarsat image
         xml_file = sarfileshortname + "/product.xml"
-        
-    
     if "S1" in sarfile:
+        #Path to product.xml-file within zipped Radarsat image
         xml_file = sarfileshortname + ".SAFE/preview/map-overlay.kml"
 
-    
     #Path to product.xml file once extracted
     xml_file_extracted = outputfolder + "//" + xml_file     
+    
     #Extract the zipfile
     zfile = zipfile.ZipFile(sarfile, 'r')
     zfile.extract(xml_file, outputfolder )
     zfile.close()
         
-    
+    #Parse the xml file
     tree = etree.parse(xml_file_extracted)
     root = tree.getroot()
    
+    #Access corners for Radarsat
     if "RS2" in sarfile:
+        # Get rasterAttriute element and children (there is only one)
         for attributes in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}rasterAttributes'):
             attribute_list = attributes.getchildren()
-           
+            
+            #get child element containing lines/pixels and read
             for attribute in attribute_list:
                 if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfSamplesPerLine":
+                    # subtract one since first line/pixel is 0,0
                     numberOfSamplesPerLine = float(attribute.text) - 1
                 if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfLines":
+                    # subtract one since first line/pixel is 0,0
                     numberOfLines = float(attribute.text) - 1
    
-
+        # Loop through all imageTiePoint elements and get lat/long for corners
         for tiepoint in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}imageTiePoint'):
             child_list = tiepoint.getchildren()
             
+            # this requires that the list has the same order in the future!
+            # consider rewriting as above
             line      = float(child_list[0][0].text)
             pixel     = float(child_list[0][1].text)
             latitude  = float(child_list[1][0].text)
@@ -70,44 +77,38 @@ def CheckLocation(sarfile, location, locationEPSG):
             if (line == 0.0) and (pixel == numberOfSamplesPerLine):
                 sar_upperright_x = longitude
                 sar_upperright_y = latitude
-                
                     
             #check if lower left    
             if (line == numberOfLines) and (pixel == 0.0):
                 sar_lowerleft_x = longitude
                 sar_lowerleft_y = latitude
-                
                     
             #check if upper right
             if (line == numberOfLines) and (pixel == numberOfSamplesPerLine):
                 sar_lowerright_x = longitude
                 sar_lowerright_y = latitude
-            
+        
+        #Create WKT representation of bounding box polygon
         wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
                   + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
                   "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
                   + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
                   
-                  
+    # Access corners for Sentinel-1
     if "S1" in sarfile:   
-        
+        # Get bounding box
         for tiepoint in root.iter('{http://www.google.com/kml/ext/2.2}LatLonQuad'):
             child_list = tiepoint.getchildren()
-        
         bounding_box = child_list[0].text
         bounding_box_list = bounding_box.split(" ")
+        #WKT requires that last point = first point in polygon, add first point
         wkt_sarimage1 = "POLYGON((" + bounding_box + " " + bounding_box_list[0] + "))"
+        #WKT requires other use of comma and spaces in coordinate list
         wkt_sarimage2 = wkt_sarimage1.replace(" ", ";")
         wkt_sarimage3 = wkt_sarimage2.replace(",", " ")
         wkt_sarimage  = wkt_sarimage3.replace(";", ",")
         
-        
-            
 
-
-
-    
-    print wkt_sarimage
     # Define projections
     datasetEPSG  = pyproj.Proj("+init=EPSG:4326")
     locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
@@ -122,38 +123,8 @@ def CheckLocation(sarfile, location, locationEPSG):
                   "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
                   + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
                   
-    print wkt_location            
-    
-    poly_location = ogr.CreateGeometryFromWkt(wkt_location)
-    poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
-    contained = poly_location.Intersect(poly_sarimage)
-    print contained
-    os.remove(xml_file_extracted)
-    return contained
-
-        
-
-    wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
-                  + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
-                  "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
-                  + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
-    print wkt_sarimage
-    # Define projections
-    datasetEPSG  = pyproj.Proj("+init=EPSG:4326")
-    locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
-    
-    #Transform coordinates of location into sarfile coordinates
-    upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])
-    lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])   
-    wkt_location = "POLYGON((" + str(upperleft_x) + " " +  str(upperleft_y) + "," \
-                  + str(upperleft_x) + " "  + str(lowerright_y) + \
-                  "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
-                  + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
-                  
-    print wkt_location            
-    
+         
+    # Use ogr to check if polygon contained
     poly_location = ogr.CreateGeometryFromWkt(wkt_location)
     poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
     contained = poly_location.Intersect(poly_sarimage)
