@@ -21,11 +21,18 @@ def CheckLocation(sarfile, location, locationEPSG):
     (sarfilepath, sarfilename)    = os.path.split(sarfile)             
     (sarfileshortname, extension) = os.path.splitext(sarfilename)  
     
-    xml_file = sarfileshortname + "/product.xml"
-    xml_file_extracted = outputfolder + "//" + xml_file 
-
-    #Extract the zipfile, skip if corrupt
+    if "RS2" in sarfile:
+        #Path to product.xml-file within zipped Radarsat image
+        xml_file = sarfileshortname + "/product.xml"
+        
     
+    if "S1" in sarfile:
+        xml_file = sarfileshortname + ".SAFE/preview/map-overlay.kml"
+
+    
+    #Path to product.xml file once extracted
+    xml_file_extracted = outputfolder + "//" + xml_file     
+    #Extract the zipfile
     zfile = zipfile.ZipFile(sarfile, 'r')
     zfile.extract(xml_file, outputfolder )
     zfile.close()
@@ -34,48 +41,95 @@ def CheckLocation(sarfile, location, locationEPSG):
     tree = etree.parse(xml_file_extracted)
     root = tree.getroot()
    
+    if "RS2" in sarfile:
+        for attributes in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}rasterAttributes'):
+            attribute_list = attributes.getchildren()
+           
+            for attribute in attribute_list:
+                if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfSamplesPerLine":
+                    numberOfSamplesPerLine = float(attribute.text) - 1
+                if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfLines":
+                    numberOfLines = float(attribute.text) - 1
+   
 
-    for attributes in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}rasterAttributes'):
-        attribute_list = attributes.getchildren()
-        for attribute in attribute_list:
-            if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfSamplesPerLine":
-                numberOfSamplesPerLine = float(attribute.text) - 1
-            if attribute.tag == "{http://www.rsi.ca/rs2/prod/xml/schemas}numberOfLines":
-                numberOfLines = float(attribute.text) - 1
-        #numberOfSamplesPerLine =  float(attribute_list[2].text) -1
-        #numberOfLines = float(attribute_list[3].text) -1
-    
-    
-    for tiepoint in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}imageTiePoint'):
-        child_list = tiepoint.getchildren()
-        
-        line      = float(child_list[0][0].text)
-        pixel     = float(child_list[0][1].text)
-        latitude  = float(child_list[1][0].text)
-        longitude = float(child_list[1][1].text)
-        
-        
-        #check if upper left
-        if (line == 0.0) and (pixel == 0.0):
-            sar_upperleft_x = longitude
-            sar_upperleft_y = latitude
-        
-        #check if upper right
-        if (line == 0.0) and (pixel == numberOfSamplesPerLine):
-            sar_upperright_x = longitude
-            sar_upperright_y = latitude
+        for tiepoint in root.iter('{http://www.rsi.ca/rs2/prod/xml/schemas}imageTiePoint'):
+            child_list = tiepoint.getchildren()
             
-                
-        #check if lower left    
-        if (line == numberOfLines) and (pixel == 0.0):
-            sar_lowerleft_x = longitude
-            sar_lowerleft_y = latitude
+            line      = float(child_list[0][0].text)
+            pixel     = float(child_list[0][1].text)
+            latitude  = float(child_list[1][0].text)
+            longitude = float(child_list[1][1].text)
             
+            
+            #check if upper left
+            if (line == 0.0) and (pixel == 0.0):
+                sar_upperleft_x = longitude
+                sar_upperleft_y = latitude
+            
+            #check if upper right
+            if (line == 0.0) and (pixel == numberOfSamplesPerLine):
+                sar_upperright_x = longitude
+                sar_upperright_y = latitude
                 
-        #check if upper right
-        if (line == numberOfLines) and (pixel == numberOfSamplesPerLine):
-            sar_lowerright_x = longitude
-            sar_lowerright_y = latitude
+                    
+            #check if lower left    
+            if (line == numberOfLines) and (pixel == 0.0):
+                sar_lowerleft_x = longitude
+                sar_lowerleft_y = latitude
+                
+                    
+            #check if upper right
+            if (line == numberOfLines) and (pixel == numberOfSamplesPerLine):
+                sar_lowerright_x = longitude
+                sar_lowerright_y = latitude
+            
+        wkt_sarimage = "POLYGON((" + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "," \
+                  + str(sar_upperleft_x) + " " + str(sar_lowerright_y) + \
+                  "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerright_x) \
+                  + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
+                  
+                  
+    if "S1" in sarfile:   
+        
+        for tiepoint in root.iter('{http://www.google.com/kml/ext/2.2}LatLonQuad'):
+            child_list = tiepoint.getchildren()
+        
+        bounding_box = child_list[0].text
+        bounding_box_list = bounding_box.split(" ")
+        wkt_sarimage1 = "POLYGON((" + bounding_box + " " + bounding_box_list[0] + "))"
+        wkt_sarimage2 = wkt_sarimage1.replace(" ", ";")
+        wkt_sarimage3 = wkt_sarimage2.replace(",", " ")
+        wkt_sarimage  = wkt_sarimage3.replace(";", ",")
+        
+        
+            
+
+
+
+    
+    print wkt_sarimage
+    # Define projections
+    datasetEPSG  = pyproj.Proj("+init=EPSG:4326")
+    locationEPSG = pyproj.Proj("+init=" + str(locationEPSG))
+    
+    #Transform coordinates of location into sarfile coordinates
+    upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
+                                 location[0], location[1])
+    lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
+                                 location[0], location[1])   
+    wkt_location = "POLYGON((" + str(upperleft_x) + " " +  str(upperleft_y) + "," \
+                  + str(upperleft_x) + " "  + str(lowerright_y) + \
+                  "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
+                  + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
+                  
+    print wkt_location            
+    
+    poly_location = ogr.CreateGeometryFromWkt(wkt_location)
+    poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
+    contained = poly_location.Intersect(poly_sarimage)
+    print contained
+    os.remove(xml_file_extracted)
+    return contained
 
         
 
