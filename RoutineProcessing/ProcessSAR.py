@@ -25,7 +25,7 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
     if "RS2" in sarfile:
         #Path to product.xml-file within zipped Radarsat image
         xml_file = sarfileshortname + "/product.xml"
-    if "S1" in sarfile:
+    if "S1A" in sarfile:
         #Path to product.xml-file within zipped Radarsat image
         xml_file = sarfileshortname + ".SAFE/preview/map-overlay.kml"
 
@@ -95,7 +95,7 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
                   + " " + str(sar_upperleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
                   
     # Access corners for Sentinel-1
-    if "S1" in sarfile:   
+    if "S1A" in sarfile:   
         # Get bounding box
         for tiepoint in root.iter('{http://www.google.com/kml/ext/2.2}LatLonQuad'):
             child_list = tiepoint.getchildren()
