@@ -7,7 +7,7 @@ Created on Thu Aug 27 08:48:44 2015
 import os, fnmatch, pyproj, gdal, zipfile, glob, shutil
 import xml.etree.ElementTree as etree  
 
-def CheckLocation(sarfile, location, locationEPSG):
+def CheckLocation(sarfile, location, locationEPSG, outputfolder):
     """
     Checks of the area of interest defined by location is contained in sarfile
     sarfile is a map projected jpeg, the xml file containing the projection 
