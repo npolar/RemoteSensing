@@ -407,10 +407,7 @@ outputresolution = 50
 year = 2015
 
 while year <= 2015:
-    # to mount Windows server type
-    #  sudo mount -t cifs //berner/satellittdata  /mnt/satellittdata -o  \
-    #        username=max,domain=NP,rw,iocharset=utf8,file_mode=0644,    \
-    #        dir_mode=0755,uid=max,gid=max
+
 
     #inputfolder = "Z:\\Sentinel-1\\ArcticOceanSvalbard\\2015"
     #inputfolder = "G:\\Austfonna" 
