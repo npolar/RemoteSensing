@@ -473,12 +473,6 @@ outputresolution = 50
 #outputresolution = 25
 
 
-
-# to mount Windows server type
-#  sudo mount -t cifs //berner/satellittdata  /mnt/satellittdata -o  \
-#        username=max,domain=NP,rw,iocharset=utf8,file_mode=0644,    \
-#        dir_mode=0755,uid=max,gid=max
-
 #inputfolder = "Z:\\Sentinel-1\\ArcticOceanSvalbard\\2015"
 #inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2010" 
 #inputfolder = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2010" 
