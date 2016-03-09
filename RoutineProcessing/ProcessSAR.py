@@ -33,9 +33,15 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
     xml_file_extracted = outputfolder + "//" + xml_file     
     
     #Extract the zipfile
-    zfile = zipfile.ZipFile(sarfile, 'r')
-    zfile.extract(xml_file, outputfolder )
-    zfile.close()
+    print "Decompressing ", sarfile
+    try:
+        zfile = zipfile.ZipFile(sarfile, 'r')
+        zfile.extract(xml_file, outputfolder )
+        zfile.close()
+    except:
+        print "zipfile cannot open"
+        contained = False
+        return contained
         
     #Parse the xml file
     tree = etree.parse(xml_file_extracted)
@@ -94,6 +100,7 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
                   "," + str(sar_lowerright_x) + " " + str(sar_lowerright_y) + "," + str(sar_lowerleft_x) \
                   + " " + str(sar_lowerleft_y) + "," + str(sar_upperleft_x) + " " +  str(sar_upperleft_y) + "))"
                   
+                
     # Access corners for Sentinel-1
     if "S1A" in sarfile:   
         # Get bounding box
@@ -117,21 +124,19 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
     upperleft_x,  upperleft_y  = pyproj.transform(locationEPSG, datasetEPSG, \
                                  location[0], location[1])
     lowerright_x, lowerright_y = pyproj.transform(locationEPSG, datasetEPSG, \
-                                 location[0], location[1])   
+                                 location[2], location[3])   
     wkt_location = "POLYGON((" + str(upperleft_x) + " " +  str(upperleft_y) + "," \
                   + str(upperleft_x) + " "  + str(lowerright_y) + \
                   "," + str(lowerright_x) + " " + str(lowerright_y) + "," + str(lowerright_x) \
                   + " " + str(upperleft_y) + "," + str(upperleft_x) + " " +  str(upperleft_y) + "))"
                   
-         
+    print wkt_sarimage  
+    print wkt_location    
     # Use ogr to check if polygon contained
     poly_location = ogr.CreateGeometryFromWkt(wkt_location)
     poly_sarimage = ogr.CreateGeometryFromWkt(wkt_sarimage)             
     contained = poly_location.Intersect(poly_sarimage)
-    if contained == True:
-        print sarfileshortname, " matches location."
-    elif contained == False:
-        print sarfileshortname, " does not match location."
+    print contained
     os.remove(xml_file_extracted)
     return contained
     
@@ -309,9 +314,12 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
     # Extracting the SAR file
     print "Decompressing " + sarfileshortname       
     if extension == ".zip":    
-        zfile = zipfile.ZipFile(sarfile, "r")    
-        zfile.extractall(outputfilepath)
-        zfile.close()
+        try:
+            zfile = zipfile.ZipFile(sarfile, "r")    
+            zfile.extractall(outputfilepath)
+            zfile.close()
+        except:
+            return
     
     #Call SNAP routine, xml file depending on sensor type and resolution
     print "Process ", sarfilename, " with SNAP."
@@ -432,6 +440,7 @@ outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
 # Map projection of Quicklooks
 quicklookEPSG = 'EPSG:3575'
 #quicklookEPSG = 'EPSG:3031'
+#quicklookEPSG = 'EPSG:32633'
 
 # Do you want Terrain Correction?
 TC = True
@@ -439,98 +448,93 @@ TC = True
 
 # Define Area of interest in outputEPSG
 # Austfonna EPSG32633 Surge
-upperleft_x  =  651500.0
-upperleft_y  = 8891000.0
-lowerright_x =  740000.0
-lowerright_y = 8800881.0
+#upperleft_x  =  651500.0
+#upperleft_y  = 8891000.0
+#lowerright_x =  740000.0
+#lowerright_y = 8800881.0
 
 #Holtedalfonne
-#upperleft_x = 419726.0
-#upperleft_y =  8812000.0       
-#lowerright_x = 475000.0        
-#lowerright_y = 8737956.0    
+upperleft_x = 419726.0
+upperleft_y =  8812000.0       
+lowerright_x = 475000.0        
+lowerright_y = 8737956.0    
 
 # DO YOU WANT OUTPUT TO BE CROPPED TO LOCATION?
 #crop_to_location = True
 # OR DO YOU JUST WANT TO  HAVE SCENE CONTAINING location PROCESSED
-crop_to_location = False
+crop_to_location = True
 
 # If location is set to [], only quicklooks will be created
-#location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
-location = []
+location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
+#location = []
 
 # SCWA output resolution 50m
-#outputresolution = 50
-outputresolution = 20
+outputresolution = 50
+#outputresolution = 25
 
 
+
+# to mount Windows server type
+#  sudo mount -t cifs //berner/satellittdata  /mnt/satellittdata -o  \
+#        username=max,domain=NP,rw,iocharset=utf8,file_mode=0644,    \
+#        dir_mode=0755,uid=max,gid=max
 
 #inputfolder = "Z:\\Sentinel-1\\ArcticOceanSvalbard\\2015"
-inputfolder = "//mnt//satellittdata//ERS_Envisat_SAR//Arctic//2004" 
-#inputfolder = "//media//max//DATADRIVE1//satellittdata//flerbrukBarents"
-#inputfolder = "//media//max//DATADRIVE1//satellittdata//DML"
-#inputfolder = "G:\\temp"      
-#inputfolder = "Z:\\Radarsat\\Flerbruksavtale\\ArcticOcean_Svalbard\\2015"    
-#inputfolder  = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2015//01_January"
-#inputfolder  = "//mnt//satellittdata//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2015"
-#inputfolder  = "//home//max//Documents//SARtestDML"
-#outputfolder = "//home//max//Documents//SARtestDML"
-#outputfolder = "//media//max//Transcend//SARtest"
-#outputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//processed_images//Austfonna"
-#outputfolder = "G:\\Austfonna\\output"
-#outputfolder = "//media//max//DATADRIVE1//satellittdata//flerbrukBarents"
-outputfolder = "//media//max//DATADRIVE1//ERS_TC"
-#outputfolder = "G:\\temp"  
+#inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2010" 
+#inputfolder = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2010" 
+inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2012" 
+
+outputfolder = "//mnt//glaciology//processedSARimages//HoltedalsfonnaKongsfjorden_50_meter//2012"
+ 
 
 # Create list containing all zip files to be processed
 filelist = []    
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, '*.zip'):
-		filelist.append(os.path.join(root, filename))
-		
+    for filename in fnmatch.filter(filenames, 'RS2_201204*.zip'):
+        filelist.append(os.path.join(root, filename))
+        
 # This one grabs anyunzipped TerraSAR-X files in the folder   
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, "TSX*.xml"):
-		filelist.append(os.path.join(root, filename))
+    for filename in fnmatch.filter(filenames, "TSX*.xml"):
+        filelist.append(os.path.join(root, filename))
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, 'VDF_DAT.001'):
-		filelist.append(os.path.join(root, filename))
+    for filename in fnmatch.filter(filenames, 'VDF_DAT.001'):
+        filelist.append(os.path.join(root, filename))
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, '*.E1'):
-		filelist.append(os.path.join(root, filename))      
+    for filename in fnmatch.filter(filenames, '*.E1'):
+        filelist.append(os.path.join(root, filename))      
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, '*.E2'):
-		filelist.append(os.path.join(root, filename))  
+    for filename in fnmatch.filter(filenames, '*.E2'):
+        filelist.append(os.path.join(root, filename))  
 for root, dirnames, filenames in os.walk(inputfolder):
-	for filename in fnmatch.filter(filenames, '*.N1'):
-		filelist.append(os.path.join(root, filename))         
-	
+    for filename in fnmatch.filter(filenames, '*.N1'):
+        filelist.append(os.path.join(root, filename))         
+    
 print "Number of Scenes Found: ", len(filelist)
 # Loop through each file in file list and do processing
 for sarfile in filelist:
-	print
-	print "Scene ", filelist.index(sarfile) + 1 , "of ", len(filelist)
-	
-	(sarfilepath, sarfilename)     = os.path.split(sarfile)
-	(sarfileshortname, extension)  = os.path.splitext(sarfilename)
-	
-	CreateQuicklook(sarfile, sarfilepath, quicklookEPSG)
-	
-			# Check if AOI extract is wanted       
-	
+    print
+    print "Scene ", filelist.index(sarfile) + 1 , "of ", len(filelist)
+    
+    (sarfilepath, sarfilename)     = os.path.split(sarfile)
+    (sarfileshortname, extension)  = os.path.splitext(sarfilename)
+    
+    #CreateQuicklook(sarfile, sarfilepath, quicklookEPSG)
+    
+            # Check if AOI extract is wanted       
+    
   
-	# If location is given, check if contained, if not skip scene
-	if location == []:
-	   contained = CheckLocation(sarfile, location, outputEPSG, outputfolder)           
-	   if contained == True:
-		   break
-	
-	ProcessSAR(sarfile, outputfolder, location, outputresolution,\
-					outputEPSG, TC, crop_to_location)
-		
+    # If location is given, check if contained, if not skip scene
+    if location != []:
+       contained = CheckLocation(sarfile, location, outputEPSG, outputfolder)
+       print sarfilename, " is contained: ", contained
+       if contained == False:
+           continue
+    
+    ProcessSAR(sarfile, outputfolder, location, outputresolution,\
+                    outputEPSG, TC, crop_to_location)
+        
 
+        
 
-		
-
-		
-
+        

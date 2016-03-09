@@ -55,8 +55,8 @@
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>49.83235946676263</pixelSpacingInMeter>
-      <pixelSpacingInDegree>4.4915764205976077E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>19.932943786705053</pixelSpacingInMeter>
+      <pixelSpacingInDegree>1.79663056823904E-4</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
