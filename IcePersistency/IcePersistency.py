@@ -6,14 +6,86 @@ Created on Wed Feb 26 08:18:31 2014
  
 Creating ice persistency maps from NSIDC sea ice concentration charts
 * Bin2GeoTiff -- converting binary NSIDC maps to GeoTIFF
-* CreateIcePercistanceMap -- create ice persistence map
+* CreateSeaIceFrequencyMap -- create SeaIceFrequency map
 * CreateMaxMinIce -- create min/max ice maps
 * EPSG3411_2_EPSG3575 -- reproject raster from EPSG:3411 to EPSG:3575
 * ReprojectShapefile -- reproject shapefiles from EPSG:3411 to EPSG:3575
 Documentation before each function and at https://github.com/npolar/RemoteSensing/wiki/Sea-Ice-Frequency
 """
 
-import struct, numpy, gdal, gdalconst, glob, os, osr, datetime, subprocess, shutil
+import struct, numpy, gdal, gdalconst, glob, os, osr
+import shutil, sys, datetime
+
+
+def AddMissingDays(year, month, infilepath):
+    '''
+        Replaces missing days with files from previous day
+    '''
+    
+    
+    #http://pymotw.com/2/datetime/
+    #http://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
+    d1 =  datetime.date(year, month, 1)
+    if month != 12:
+        d2 =  datetime.date(year, month +1 , 1)
+    elif month == 12:
+        d2 =  datetime.date(year+1, 1 , 1)
+        
+    diff = datetime.timedelta(days=1)
+    
+    #date3 is working date to be looped through  -- set to start date   
+    d3 = d1
+    
+    print "REPLACE MISSING FILES FOR ", year
+    
+    
+    
+    while d3 != d2:
+        # Create searchstring for file to be checked if it exists
+        day = d3.day
+        
+        checkfile = infilepath + "nt_" + d3.strftime('%Y%m%d') + "*"
+        
+        # Check if that file exists
+        checkfilelist = glob.glob(checkfile)
+        
+        # If that file does not exist, replace it with previous day file
+        # check 1-3 previous days, if not exist, take following day
+        # Needed because for first of monty, the 31 of previous month not available
+        # as it is programmed now
+        if checkfilelist == []:    
+            for i in (-1, -2, -3, 1, 2):
+                newdate = d3 + datetime.timedelta(days=i)
+                print newdate
+                replacingfile = infilepath + "nt_" + newdate.strftime('%Y%m%d') + "*"
+                
+                replacingfilelist = glob.glob(replacingfile)
+                print replacingfilelist
+                if replacingfilelist != []:
+                    break
+            
+                        
+            try:
+                pathname, filename = os.path.split(replacingfilelist[0])
+            except:
+                d3 = (d3 + diff) 
+                continue
+            if day < 10:
+                missingfile = pathname + "//" + filename[0:9] + "0" + str(day) + filename[11:]
+            else:
+                missingfile = pathname + "//" + filename[0:9] +  str(day) + filename[11:]
+            print "Missing ", missingfile 
+            print "replaced with ", replacingfilelist[0]
+            
+            # In 1987, 14 days are missing, these are not replaced
+            try:
+                shutil.copy(replacingfilelist[0], missingfile)
+            except:
+                d3 = (d3 + diff) 
+                continue
+            
+        d3 = (d3 + diff)    
+
 
 def EPSG3411_2_EPSG3575(infile):
     '''
@@ -23,7 +95,7 @@ def EPSG3411_2_EPSG3575(infile):
     
     (infilepath, infilename) = os.path.split(infile)
     (infileshortname, extension) = os.path.splitext(infilename)
-    outdirectory = infilepath + '\\EPSG3575\\'
+    outdirectory = infilepath + '//EPSG3575//'
     if not os.path.exists(outdirectory):
         os.makedirs(outdirectory)
     outfile =  outdirectory + infileshortname + '_EPSG3575.tif'
@@ -44,9 +116,9 @@ def ReprojectShapefile(infile, inproj = "EPSG:3411", outproj = "EPSG:3575"):
     (infilepath, infilename) = os.path.split(infile)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
     
-    reprshapepath = infilepath + '\\' + outproj[0:4] + outproj[5:9]
+    reprshapepath = infilepath + '//' + outproj[0:4] + outproj[5:9]
     reprshapeshortname = infileshortname + '_' + outproj[0:4] + outproj[5:9]
-    reprshapefile = reprshapepath + '\\'+ reprshapeshortname + extension
+    reprshapefile = reprshapepath + '//'+ reprshapeshortname + extension
     
     #Reproject using ogr commandline
     print 'Reproject Shapefile ', infile    
@@ -124,10 +196,10 @@ def Bin2GeoTiff(infile,outfilepath ):
     EPSG3411_2_EPSG3575(outfile)
     
     
-def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
+def CreateSeaIceFrequencyMap(inpath, outfilepath, max_ice, min_ice, landmask_raster):
     '''
     Creates map showing percentage ice coverage over a given period
-    This function creates the ice persistence charts. 
+    This function creates the sea ice frequency charts. 
     The function loops through each concentration map, if the value is larger
     than 38 = 15.2%, the value of "100.0 / NumberOfDays" is added --> if there 
     is ice every single day, that pixel will be "100"
@@ -150,7 +222,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
         
-    outfile = inpath + 'icechart_persistencemap' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
+    outfile = inpath + 'icechart_seaicefrequencymap' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.tif'
     
     ########
     # CREATE OUTPUT FILE AS COPY FROM ONE ICECHART
@@ -184,7 +256,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
     outarray = numpy.zeros((rows, cols), numpy.float)    
     
     #######
-    # CALCULATE ICE PERSISTENCE RASTER
+    # CALCULATE SEA ICE FREQUENCY RASTER
     #######
     
     #Loop through all files to do calculation
@@ -220,18 +292,26 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
         #Clear iceraster for next loop -- just in case
         iceraster = None
         
+
+    # The polar hole has different sizes in the earlier years
+    # This results in the line above in %-values larger than 100
+    # so setting these to 251 gives again the maximum polar hole
+    outarray = numpy.where( (outarray >   255), 251 , outarray)
+    
     ######
     # Filter noise areas
     ######
 
-    #Filter with maximum map since persistance map has noise values just as max map.
+    #Filter with maximum map since sea ice frequency map has noise values just as max map.
     #FUNCTION CreateMaxMinIce  HAS TO BE RUN BEFORE CreateIcePercistanceMap
     max_chart = gdal.Open(max_ice, gdalconst.GA_ReadOnly)
     max_chartraster = max_chart.ReadAsArray()
     landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
-    landraster = landmask.ReadAsArray()
+    landraster = landmask.ReadAsArray()  
     outarray = numpy.where(max_chartraster == 1, outarray, 0)
-    outarray = numpy.where( (landraster ==   251), 251 , outarray)
+    # The polar hole is not in the landmask but only in outarray!!
+    outarray = numpy.where( (outarray ==   251), 251 , outarray)
+    # The other values are in the landraster;
     outarray = numpy.where( (landraster ==   252), 252 , outarray)
     outarray = numpy.where( (landraster ==   253), 253 , outarray)
     outarray = numpy.where( (landraster ==   254), 254 , outarray)
@@ -253,7 +333,7 @@ def CreateIcePercistanceMap(inpath, outfilepath, max_ice, min_ice, landmask_rast
     EPSG3411_2_EPSG3575(outfile)
     
     return outfile
-    print 'Done Creating Persistence Map'
+    print 'Done Creating Sea Ice Frequency Map'
     
 def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raster, oceanmask_buffer5, NSIDC_balticmask ):   
     ''' 
@@ -284,14 +364,14 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
     (infileshortname, extension) = os.path.splitext(infilename)
     
-    outfile =  inpath + 'icechart_NumberOfDays' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
-    outfilemax = inpath + 'icechart_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
-    outfilemin = inpath + 'icechart_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.tif'
+    outfile =  inpath + 'icechart_NumberOfDays' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.tif'
+    outfilemax = inpath + 'icechart_maximum' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.tif'
+    outfilemin = inpath + 'icechart_minimum' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.tif'
     
-    outshape_polymax = inpath + 'icechart_poly_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
-    outshape_polymin = inpath + 'icechart_poly_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
-    outshape_linemax = inpath + 'icechart_line_maximum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
-    outshape_linemin = inpath + 'icechart_line_minimum' + filelist[0][-22:-16] + '_' + filelist[-1][-22:-16] + '.shp'
+    outshape_polymax = inpath + 'icechart_poly_maximum' + os.path.split(filelist[0])[1][3:9]+ '_' + os.path.split(filelist[-1])[1][3:9] + '.shp'
+    outshape_polymin = inpath + 'icechart_poly_minimum' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.shp'
+    outshape_linemax = inpath + 'icechart_line_maximum' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.shp'
+    outshape_linemin = inpath + 'icechart_line_minimum' + os.path.split(filelist[0])[1][3:9] + '_' + os.path.split(filelist[-1])[1][3:9] + '.shp'
     
     #Temporary shapefile, all subfiles specified so that they can be removed later
     #Many because gdal commands expect existing files
@@ -486,6 +566,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outarraymax = numpy.where( (landraster ==   252), 252 , outarraymax)
     outarraymax = numpy.where( (landraster ==   253), 253 , outarraymax)
     outarraymax = numpy.where( (landraster ==   254), 254 , outarraymax)
+    outarraymin = numpy.where( (landraster ==   255), 255 , outarraymin)
     outbandmax = outrastermax.GetRasterBand(1)    
     outbandmax.WriteArray(outarraymax)
     outbandmax.FlushCache()
@@ -601,7 +682,8 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outarray = None
     
     #Rasterize polygon
-    subprocess.call('gdal_rasterize -burn 1 ' + outshape_polymax + ' ' + outfilemax )
+    
+    os.system('gdal_rasterize -burn 1 ' + outshape_polymax + ' ' + outfilemax )
     # OPen raster and burn in landmask again -- is not contained in polygon
     outarray = gdal.Open( outfilemax, gdalconst.GA_Update)
     outarraymax = outarray.ReadAsArray()
@@ -628,7 +710,7 @@ def CreateMaxMinIce(inpath, outfilepath, landmask_raster, coastalerrormask_raste
     outbandmin.FlushCache()
     outarray = None
     #Rasterize polygon
-    subprocess.call('gdal_rasterize -burn 1 ' + outshape_polymin + ' ' + outfilemin )
+    os.system('gdal_rasterize -burn 1 ' + outshape_polymin + ' ' + outfilemin )
     # OPen raster and burn in landmask again -- is not contained in polygon
     outarray = gdal.Open( outfilemin, gdalconst.GA_Update)
     outarraymin = outarray.ReadAsArray()
@@ -727,9 +809,12 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
     #Loop through all files to do calculation
     for infile in filelist:
         #Find present data    
-        presentyear = int(infile[-22:-18])
-        presentmonth = int(infile[-18:-16])
-        presentday = int(infile[-16:-14])
+        #Find present data
+        #If NSIDC changes filenames, this may need adjustment, happened in 2016
+        #(os.path.split(infile)[1] is the filename without path, then split date
+        presentyear = int(os.path.split(infile)[1][3:7])
+        presentmonth = int(os.path.split(infile)[1][7:9])
+        presentday = int(os.path.split(infile)[1][9:11])
         
         presentdate =  datetime.date(presentyear, presentmonth, presentday) 
         
@@ -740,7 +825,7 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         dayrange = 2
         
         #Let ice value in coastal zone persist if there was ice the days around it
-        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  infile[-14:]
+        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
         presentdayfile = gdal.Open( presentdayfilename, gdalconst.GA_Update)
         presentdayraster = presentdayfile.ReadAsArray()
         print "coastal error mask for ", presentdayfilename
@@ -750,7 +835,7 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         for i in range(-dayrange, dayrange +1):
             diff = datetime.timedelta(days=i)
             diffdate = presentdate + diff
-            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  infile[-14:]
+            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
             
             if os.path.isfile(checkfilename):
                 checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
@@ -783,7 +868,7 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         for i in range(-dayrange, dayrange +1):
             diff = datetime.timedelta(days=i)
             diffdate = presentdate + diff
-            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  infile[-14:]
+            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
             
             if os.path.isfile(checkfilename):
                 checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
@@ -821,9 +906,9 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         
 def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
     '''
-    Problem: Along Coastal Areas, the land/ocean boundary appears as ice values
-    Solution: Mask for problematice areas, but consider as ice if value remains
-    for a number of consecutive days -- filters singular error pixels
+    Problem: Singular pixels claiming to be ice
+    Solution: Consider as ice if value has ice "dayrange"-number
+    before of after a given day-- filters singular error pixels
     
     Loop through all NSIDC ice concentration areas
     In the coastal areas (defined by NSIDC_coastalerrormask_raster.tif) ice concentration
@@ -858,10 +943,12 @@ def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
     coastalicemaskraster = numpy.zeros((rows, cols), numpy.float) 
         #Loop through all files to do calculation
     for infile in filelist:
-        #Find present data    
-        presentyear = int(infile[-22:-18])
-        presentmonth = int(infile[-18:-16])
-        presentday = int(infile[-16:-14])
+        #Find present data
+        #If NSIDC changes filenames, this may need adjustment, happened in 2016
+        #(os.path.split(infile)[1] is the filename without path, then split date
+        presentyear = int(os.path.split(infile)[1][3:7])
+        presentmonth = int(os.path.split(infile)[1][7:9])
+        presentday = int(os.path.split(infile)[1][9:11])
         
         presentdate =  datetime.date(presentyear, presentmonth, presentday) 
         
@@ -869,7 +956,7 @@ def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
         dayrange = 1
         
         #Let ice value in coastal zone persist if there was ice the days around it
-        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  infile[-14:]
+        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
         presentdayfile = gdal.Open( presentdayfilename, gdalconst.GA_Update)
         presentdayraster = presentdayfile.ReadAsArray()
         print "Filter consec days for ", presentdayfilename
@@ -880,7 +967,7 @@ def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
         for i in range(-dayrange, dayrange +1):
             diff = datetime.timedelta(days=i)
             diffdate = presentdate + diff
-            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  infile[-14:]
+            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
             
             if os.path.isfile(checkfilename):
                 checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
@@ -933,25 +1020,43 @@ def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
 ##############################################################################
 
 
-#infilepath = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\2012\\'
+#############################
+# SET PATH AND VARIABLES HERE
+#############################
+
 ### Location of needed Raster Masks ###
+### these files are located on \\berner\SeaIceRemoteSensing\Isfrekvens\landmasks
+### the present paths below are mounted Ubuntu paths to this location
 
-landmask_raster = 'C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_landmask_raster.tif'
-coastalerrormask_raster = "C:\\Users\\max\\Documents\\IcePersistency\\landmasks\\NSIDC_coastalerrormask_raster.tif"
-oceanmask_buffer5 = 'C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_oceanmask_buffer5.shp'
-NSIDC_balticmask = 'C:\Users\max\Documents\IcePersistency\landmasks\NSIDC_balticmask.tif'
+landmask_raster = '//mnt//seaiceremotesensing//Isfrekvens//landmasks//NSIDC_landmask_raster.tif'
+coastalerrormask_raster = "//mnt//seaiceremotesensing//Isfrekvens//landmasks//NSIDC_coastalerrormask_raster.tif"
+oceanmask_buffer5 = '//mnt//seaiceremotesensing//Isfrekvens//landmasks//NSIDC_oceanmask_buffer5.shp'
+NSIDC_balticmask = '//mnt//seaiceremotesensing//Isfrekvens//landmasks//NSIDC_balticmask.tif'
 
-
-#filelist = glob.glob(infilepath + 'nt_201202*.bin')
 
 #Get all files from given month
-startyear = 2008
-stopyear = 2013
-month = 5                            #Values 1 to 12
+#Set this to the startyear and stopyear for your 30-year period (e.g. 1986-2015)
+#Run once for each month 1-2
+startyear = 1986
+stopyear = 2015
+month = 3                          #Values 1 to 12
 
+# Set destinationpath where all results are supposed to be stored
+destinationpath = '//mnt//seaiceremotesensing//Isfrekvens//Isfrekvens1986-2015//'
+
+# Set path where NSIDC sea ice concentration is stored
+nsidcpath = '//mnt//seaiceremotesensing//SSMI//IceConcentration//NASATEAM//final-gsfc//north//daily//'
+
+##############################
+# END OF VARIABLES TO BE SET
+##############################
+
+
+
+
+### Set outfilepath where 
 monthDict={1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
-#outfilepath = 'C:\\Users\\max\\Documents\\IcePersistency\\' + monthDict[month] + '\\'
-outfilepath = 'C:\\Users\\max\\Documents\\Hallvar\\' + monthDict[month] + '\\'
+outfilepath = destinationpath + monthDict[month] + '//'
 
 if os.path.exists(outfilepath):
     answer = raw_input(outfilepath + " exists, delete and overwrite folder? [Y]es?")
@@ -968,8 +1073,8 @@ elif not os.path.exists(outfilepath):
     
 #Create filelist including all files for the given month between startyear and stopyear inclusive
 filelist = []
-for year in range(startyear, stopyear + 1):
-    foldername = 'U:\\SSMI\\IceConcentration\\NASATEAM\\final-gsfc\\north\\daily\\' + str(year) + '\\'
+for year in range(startyear, (stopyear + 1)):
+    foldername = nsidcpath + str(year) + '//'
     if month < 10: 
         file_searchstring = 'nt_' + str(year) + '0' + str(month) + '*.bin'
     else:
@@ -977,25 +1082,42 @@ for year in range(startyear, stopyear + 1):
     
     foldersearchstring = foldername + file_searchstring
     filelist.extend(glob.glob(foldersearchstring))
-    
+
 
 for icechart in filelist:
     #Convert NSIDC files to GeoTiff
     print'convert ', icechart
     Bin2GeoTiff(icechart, outfilepath)
+    
+# Fix January 1988
+# 1-12 January 1988 data is missing
+# Manually interpolated data is copied (linear interpolated between 31/12 and 13/1)
+# If other unterpolation wanted, just replace all data in folder
+if month == 1:
+    list1988 = glob.glob("//mnt//seaiceremotesensing//Isfrekvens//interpolatedJanuar1988//nt*.tif")
+    for file1988 in list1988:
+        shutil.copy(file1988, outfilepath)
+
+
+# Add missing days for 3411 as well as 3575 versions
+for year in range(startyear, (stopyear + 1)):
+    AddMissingDays(year,month, outfilepath)
+    AddMissingDays(year,month, outfilepath + "EPSG3575//")
 
 
 
-
+# Filter singular pixels
 FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
-
+#Filter erroneous pixels at coast line
 FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster)
     
 
-#Max / Min must be done before persistence, since the latter is filtered with max-map
+#Create maximum and minimum extent map
+#Max / Min must be done before sea ice frequency , since the latter is filtered with max-map
 max_ice, min_ice = CreateMaxMinIce(outfilepath, outfilepath, landmask_raster, coastalerrormask_raster, oceanmask_buffer5, NSIDC_balticmask )
 
-CreateIcePercistanceMap(outfilepath, outfilepath, max_ice, min_ice, landmask_raster)
+#Create the isfrekvens / ice frequency / ice persistence map
+CreateSeaIceFrequencyMap(outfilepath, outfilepath, max_ice, min_ice, landmask_raster)
 
 print 24*'#'
 print "Done creating Ice Persistance Map"
