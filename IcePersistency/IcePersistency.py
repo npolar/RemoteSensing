@@ -899,117 +899,6 @@ def FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster):
         presentdayfileband.WriteArray(presentdayraster)
         presentdayfileband.FlushCache()
     
-    
-    
-        
-def FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster):
-    '''
-    Problem: Singular pixels claiming to be ice
-    Solution: Consider as ice if value has ice "dayrange"-number
-    before of after a given day-- filters singular error pixels
-    
-    Loop through all NSIDC ice concentration areas
-    In the coastal areas (defined by NSIDC_coastalerrormask_raster.tif) ice concentration
-    above 15% is only considered if ice is present three days before and after the date
-    '''
-    
-    #register all gdal drivers
-    gdal.AllRegister()
-    
-    # Iterate through all rasterfiles
-    filelist = glob.glob(outfilepath + 'nt*.tif')
-    
-    
-    #Files are all the same properties, so take first one to get info
-    firstfilename = filelist[0]
-    
-    #Define file names 
-    (infilepath, infilename) = os.path.split(firstfilename)             #get path and filename seperately
-    (infileshortname, extension) = os.path.splitext(infilename)
-    
-
-    
-    #Open Coastal Mask into array
-    coastalerrormask = gdal.Open(coastalerrormask_raster, gdalconst.GA_ReadOnly)
-    coastalerrormaskarray = coastalerrormask.ReadAsArray()
-    
-    #Create file receiving the ice mask
-    #get image size
-    rows = coastalerrormask.RasterYSize
-    cols = coastalerrormask.RasterXSize   
-    
-    coastalicemaskraster = numpy.zeros((rows, cols), numpy.float) 
-        #Loop through all files to do calculation
-    for infile in filelist:
-        #Find present data
-        #If NSIDC changes filenames, this may need adjustment, happened in 2016
-        #(os.path.split(infile)[1] is the filename without path, then split date
-        presentyear = int(os.path.split(infile)[1][3:7])
-        presentmonth = int(os.path.split(infile)[1][7:9])
-        presentday = int(os.path.split(infile)[1][9:11])
-        
-        presentdate =  datetime.date(presentyear, presentmonth, presentday) 
-        
-        # ADJUST HOW MANY DAYS PLUS AND MINUS THE PRESENT DATE YOU WANT
-        dayrange = 1
-        
-        #Let ice value in coastal zone persist if there was ice the days around it
-        presentdayfilename = outfilepath + "nt_" + presentdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
-        presentdayfile = gdal.Open( presentdayfilename, gdalconst.GA_Update)
-        presentdayraster = presentdayfile.ReadAsArray()
-        print "Filter consec days for ", presentdayfilename
-        
-        #Reset coastalicemaskraster to zero
-        coastalicemaskraster = numpy.zeros((rows, cols), numpy.float) 
-        #Loop through the files around present day and determine how many days there is ice in coastal zone    
-        for i in range(-dayrange, dayrange +1):
-            diff = datetime.timedelta(days=i)
-            diffdate = presentdate + diff
-            checkfilename = outfilepath + "nt_" + diffdate.strftime('%Y%m%d') +  str(os.path.split(infile)[1])[11:]
-            
-            if os.path.isfile(checkfilename):
-                checkfile = gdal.Open(checkfilename, gdalconst.GA_ReadOnly)
-                #Read input raster into array
-                checkfileraster = checkfile.ReadAsArray()
-                
-                coastalicemaskraster = numpy.where(  ((checkfileraster >= 38) & (presentdayraster >= 38)), coastalicemaskraster + 1 , coastalicemaskraster )
-                
-            else:
-                #If previous day files do not exist, take present day one -- otherwise it does not add up with number of Days                
-                coastalicemaskraster = numpy.where(  (presentdayraster >= 38), coastalicemaskraster + 1 , coastalicemaskraster )
-                
-                
-                
-                
-        
-
-        
-        #Pixel is ice only if presentday is ice (see for loop) AND if a day before OR after is ice (from three days, two need to be ice)
-        #This does not shorten or lengthen the ice season since only day before or after is needed
-        presentdayraster = numpy.where( (coastalicemaskraster <= ((dayrange * 2)) ), 0, presentdayraster)
-        #outarray contains now NumberOfDay with ice -- burn in landmask
-        landmask = gdal.Open(landmask_raster, gdalconst.GA_ReadOnly)
-        landraster = landmask.ReadAsArray()
-        presentdayraster = numpy.where( (landraster == 251), 251, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 252), 252, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 253), 253, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 254), 254, presentdayraster)
-        presentdayraster = numpy.where( (landraster == 255), 255, presentdayraster)        
-        
-        presentdayfileband = presentdayfile.GetRasterBand(1)
-            
-        presentdayfileband.WriteArray(presentdayraster)
-        presentdayfileband.FlushCache()
-    
-    
-    
-        
-        
-                
-        
-    
-    
-        
      
 ##############################################################################
 
@@ -1102,12 +991,6 @@ if month == 1:
 for year in range(startyear, (stopyear + 1)):
     AddMissingDays(year,month, outfilepath)
     AddMissingDays(year,month, outfilepath + "EPSG3575//")
-
-
-
-# Filter singular pixels
-# THIS FILTER WAS DECIDED NOT TO BE USED
-###FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
 
 #Filter erroneous pixels at coast line
 FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster)
