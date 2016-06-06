@@ -22,7 +22,6 @@ def AddMissingDays(year, month, infilepath):
         Replaces missing days with files from previous day
     '''
     
-    
     #http://pymotw.com/2/datetime/
     #http://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
     d1 =  datetime.date(year, month, 1)
@@ -37,7 +36,6 @@ def AddMissingDays(year, month, infilepath):
     d3 = d1
     
     print "REPLACE MISSING FILES FOR ", year
-    
     
     
     while d3 != d2:
@@ -77,7 +75,7 @@ def AddMissingDays(year, month, infilepath):
             print "Missing ", missingfile 
             print "replaced with ", replacingfilelist[0]
             
-            # In 1987, 14 days are missing, these are not replaced
+            # In 1987, 14 days are missing, these are not replaced, shutil fails here
             try:
                 shutil.copy(replacingfilelist[0], missingfile)
             except:
@@ -1039,10 +1037,11 @@ NSIDC_balticmask = '//mnt//seaiceremotesensing//Isfrekvens//landmasks//NSIDC_bal
 #Run once for each month 1-2
 startyear = 1986
 stopyear = 2015
-month = 3                          #Values 1 to 12
+month = 1                          #Values 1 to 12
 
 # Set destinationpath where all results are supposed to be stored
 destinationpath = '//mnt//seaiceremotesensing//Isfrekvens//Isfrekvens1986-2015//'
+
 
 # Set path where NSIDC sea ice concentration is stored
 nsidcpath = '//mnt//seaiceremotesensing//SSMI//IceConcentration//NASATEAM//final-gsfc//north//daily//'
@@ -1107,7 +1106,9 @@ for year in range(startyear, (stopyear + 1)):
 
 
 # Filter singular pixels
-FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
+# THIS FILTER WAS DECIDED NOT TO BE USED
+###FilterConsecDays(outfilepath, landmask_raster, coastalerrormask_raster)
+
 #Filter erroneous pixels at coast line
 FilterCoastalAreas(outfilepath, landmask_raster, coastalerrormask_raster)
     
