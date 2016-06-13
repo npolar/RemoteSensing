@@ -342,12 +342,19 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
     # If an SLC image do multilooking
     if 'SLC' in sarfile:
         multilook = 'ML_'
+        #multilook = ''
     else:
         multilook = ''
         
+    if 'S1A' in sarfile:
+        #apporb = 'AppOrb_'
+        apporb = ''
+    else:
+        apporb = ''
+        
     # This string indicating the processing applied will be appended to the 
     # created fileshortnames. It is also the name of the SNAP file
-    filename_append = multilook + 'Calib_Spk_' + projection + pixelsize +  \
+    filename_append = apporb + multilook + 'Calib_Spk_' + projection + pixelsize +  \
                'LinDB_' + 'EPSG' + EPSGnumber
                
     snapfile = filename_append + '.xml'
@@ -366,7 +373,10 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
     
     #Remove folder where extracted and temporary files are stored
     if sarfileshortname[0:3] == 'RS2':
-        shutil.rmtree(outputfilepath + '//' + sarfileshortname )
+        try:
+            shutil.rmtree(outputfilepath + '//' + sarfileshortname )
+        except:
+            pass
     if sarfileshortname[0:2] == 'S1':
         shutil.rmtree(outputfilepath + '//' + sarfileshortname + ".SAFE")
     
@@ -430,16 +440,18 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
 #  CORE OF PROGRAMS FOLLOWS HERE
 ##############################################################################
 
-### input Variables ###
+#############################
+# SET PATH AND VARIABLES HERE
+#############################
 
 # Map projection of output files
-outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
+#outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
 #outputEPSG = 'EPSG:3575'  # Barents Sea and Framstrait
-#outputEPSG = 'EPSG:3031'  #Dronning Maud Land
+outputEPSG = 'EPSG:3031'  #Dronning Maud Land
 
 # Map projection of Quicklooks
-quicklookEPSG = 'EPSG:3575'
-#quicklookEPSG = 'EPSG:3031'
+#quicklookEPSG = 'EPSG:3575'
+quicklookEPSG = 'EPSG:3031'
 #quicklookEPSG = 'EPSG:32633'
 
 # Do you want Terrain Correction?
@@ -448,43 +460,69 @@ TC = True
 
 # Define Area of interest in outputEPSG
 # Austfonna EPSG32633 Surge
-#upperleft_x  =  651500.0
-#upperleft_y  = 8891000.0
-#lowerright_x =  740000.0
-#lowerright_y = 8800881.0
+upperleft_x  =  651500.0
+upperleft_y  = 8891000.0
+lowerright_x =  740000.0
+lowerright_y = 8800881.0
 
 #Holtedalfonne
-upperleft_x = 419726.0
-upperleft_y =  8812000.0       
-lowerright_x = 475000.0        
-lowerright_y = 8737956.0    
+#upperleft_x = 419726.0
+#upperleft_y =  8812000.0       
+#lowerright_x = 475000.0        
+#lowerright_y = 8737956.0
+
+#Framstrait EPSG32633
+#upperleft_x = -100000.0
+#upperleft_y =  9080000.0       
+#lowerright_x = 212705.0        
+#lowerright_y = 8231907.0    
+
+#Linne
+#upperleft_x = 466181.17
+#upperleft_y = 8660365.398 
+#lowerright_x = 477193.43
+#lowerright_y = 8668288.24
 
 # DO YOU WANT OUTPUT TO BE CROPPED TO LOCATION?
-#crop_to_location = True
+crop_to_location = False
 # OR DO YOU JUST WANT TO  HAVE SCENE CONTAINING location PROCESSED
-crop_to_location = True
+#crop_to_location = True
 
-# If location is set to [], only quicklooks will be created
-location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
-#location = []
+# If location is set to [], all scenes will be processed
+#location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
+location = []
 
 # SCWA output resolution 50m
-outputresolution = 50
+#outputresolution = 50
 #outputresolution = 25
+outputresolution = 4
+#outputresolution = 20
 
 
-#inputfolder = "Z:\\Sentinel-1\\ArcticOceanSvalbard\\2015"
-#inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2010" 
-#inputfolder = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2010" 
-inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2012" 
+# to mount Windows server type
+#  sudo mount -t cifs //berner/satellittdata  /mnt/satellittdata -o  \
+#        username=max,domain=NP,rw,iocharset=utf8,file_mode=0644,    \
+#        dir_mode=0755,uid=max,gid=max
 
-outputfolder = "//mnt//glaciology//processedSARimages//HoltedalsfonnaKongsfjorden_50_meter//2012"
- 
+
+#inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2016" 
+#inputfolder = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2016" 
+inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//Antarctica" 
+#inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//Antarctica//2013"
+#inputfolder = "//mnt//max//JitterTest"
+#outputfolder = "//mnt//glaciology//processedSARimages//HoltedalsfonnaKongsfjorden_50_meter//2010"
+outputfolder = "//mnt//glaciology//processedSARimages//Antarctica"
+#outputfolder = "///media//max//DATADRIVE1//Jean"
+#outputfolder = "//mnt//max//Quarctic//Basemap//Imagery"
+
+##############################
+# END OF VARIABLES TO BE SET
+##############################
 
 # Create list containing all zip files to be processed
 filelist = []    
 for root, dirnames, filenames in os.walk(inputfolder):
-    for filename in fnmatch.filter(filenames, 'RS2_201204*.zip'):
+    for filename in fnmatch.filter(filenames, 'RS2_*.zip'):
         filelist.append(os.path.join(root, filename))
         
 # This one grabs anyunzipped TerraSAR-X files in the folder   
