@@ -7,10 +7,32 @@
       <file>$file</file>
     </parameters>
   </node>
+ <node id="TOPSAR-Deburst">
+    <operator>TOPSAR-Deburst</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+    </parameters>
+  </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="TOPSAR-Deburst"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <nRgLooks>2</nRgLooks>
+      <nAzLooks>2</nAzLooks>
+      <outputIntensity>true</outputIntensity>
+      <grSquarePixel>true</grSquarePixel>
+    </parameters>
+  </node>
   <node id="Calibration">
     <operator>Calibration</operator>
     <sources>
-      <sourceProduct refid="Read"/>
+      <sourceProduct refid="Multilook"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -27,7 +49,7 @@
       <outputDNBand>false</outputDNBand>
     </parameters>
   </node>
- <node id="Speckle-Filter">
+<node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
       <sourceProduct refid="Calibration"/>
@@ -59,8 +81,8 @@
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>49.83235946676263</pixelSpacingInMeter>
-      <pixelSpacingInDegree>4.4915764205976077E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>4.0</pixelSpacingInMeter>
+      <pixelSpacingInDegree>3.6006068061092394E-5</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
@@ -94,7 +116,7 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="LinearTodB">
+  <node id="LinearToFromdB">
     <operator>LinearToFromdB</operator>
     <sources>
       <sourceProduct refid="Terrain-Correction"/>

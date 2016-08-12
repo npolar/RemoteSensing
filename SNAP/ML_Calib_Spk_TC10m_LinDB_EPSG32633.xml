@@ -7,10 +7,32 @@
       <file>$file</file>
     </parameters>
   </node>
+ <node id="TOPSAR-Deburst">
+    <operator>TOPSAR-Deburst</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+    </parameters>
+  </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="TOPSAR-Deburst"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <nRgLooks>1</nRgLooks>
+      <nAzLooks>1</nAzLooks>
+      <outputIntensity>true</outputIntensity>
+      <grSquarePixel>true</grSquarePixel>
+    </parameters>
+  </node>
   <node id="Calibration">
     <operator>Calibration</operator>
     <sources>
-      <sourceProduct refid="Read"/>
+      <sourceProduct refid="Multilook"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -59,8 +81,8 @@
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>49.83235946676263</pixelSpacingInMeter>
-      <pixelSpacingInDegree>4.4915764205976077E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>10</pixelSpacingInMeter>
+      <pixelSpacingInDegree>0.9663056823904E-4</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
@@ -79,7 +101,7 @@
   UNIT[&quot;m&quot;, 1.0], &#xd;
   AXIS[&quot;Easting&quot;, EAST], &#xd;
   AXIS[&quot;Northing&quot;, NORTH]]</mapProjection>
-      <nodataValueAtSea>true</nodataValueAtSea>
+      <nodataValueAtSea>false</nodataValueAtSea>
       <saveDEM>false</saveDEM>
       <saveLocalIncidenceAngle>false</saveLocalIncidenceAngle>
       <saveProjectedLocalIncidenceAngle>false</saveProjectedLocalIncidenceAngle>
@@ -94,7 +116,7 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="LinearTodB">
+  <node id="LinearToFromdB">
     <operator>LinearToFromdB</operator>
     <sources>
       <sourceProduct refid="Terrain-Correction"/>

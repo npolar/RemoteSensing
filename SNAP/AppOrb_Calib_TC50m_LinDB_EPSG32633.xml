@@ -1,66 +1,52 @@
 <graph id="Graph">
   <version>1.0</version>
-  <node id="Read">
+  <node id="1-Read">
     <operator>Read</operator>
     <sources/>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <file>$file</file>
     </parameters>
   </node>
-  <node id="Calibration">
-    <operator>Calibration</operator>
+    <node id="Apply-Orbit-File">
+    <operator>Apply-Orbit-File</operator>
     <sources>
       <sourceProduct refid="Read"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <orbitType>Sentinel Precise (Auto Download)</orbitType>
+      <polyDegree>3</polyDegree>
+      <continueOnFail>false</continueOnFail>
+    </parameters>
+  </node>
+  <node id="3-Calibration">
+    <operator>Calibration</operator>
+    <sources>
+      <sourceProduct refid="Apply-Orbit-File"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
-      <auxFile>Product Auxiliary File</auxFile>
+      <auxFile>Latest Auxiliary File</auxFile>
       <externalAuxFile/>
       <outputImageInComplex>false</outputImageInComplex>
       <outputImageScaleInDb>false</outputImageScaleInDb>
       <createGammaBand>false</createGammaBand>
       <createBetaBand>false</createBetaBand>
-      <selectedPolarisations/>
-      <outputSigmaBand>true</outputSigmaBand>
-      <outputGammaBand>false</outputGammaBand>
-      <outputBetaBand>false</outputBetaBand>
-      <outputDNBand>false</outputDNBand>
     </parameters>
   </node>
- <node id="Speckle-Filter">
-    <operator>Speckle-Filter</operator>
-    <sources>
-      <sourceProduct refid="Calibration"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
-      <filter>Refined Lee</filter>
-      <filterSizeX>3</filterSizeX>
-      <filterSizeY>3</filterSizeY>
-      <dampingFactor>2</dampingFactor>
-      <estimateENL>true</estimateENL>
-      <enl>1.0</enl>
-      <numLooksStr>1</numLooksStr>
-      <windowSize>7x7</windowSize>
-      <targetWindowSizeStr>3x3</targetWindowSizeStr>
-      <sigmaStr>0.9</sigmaStr>
-      <anSize>50</anSize>
-    </parameters>
-  </node>
-  <node id="Terrain-Correction">
+  <node id="4-Terrain-Correction">
     <operator>Terrain-Correction</operator>
     <sources>
-      <sourceProduct refid="Speckle-Filter"/>
+      <sourceProduct refid="3-Calibration"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
       <demName>External DEM</demName>
-      <externalDEMFile>/home/max/Documents/Svalbard/GIS/DTM/dem50.tif</externalDEMFile>
+      <externalDEMFile>C:\Users\max\Documents\Svalbard\GIS\DTM\dem50.tif</externalDEMFile>
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>49.83235946676263</pixelSpacingInMeter>
-      <pixelSpacingInDegree>4.4915764205976077E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>3.77</pixelSpacingInMeter>
+      <pixelSpacingInDegree>3.386648621130596E-5</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
@@ -94,10 +80,10 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="LinearTodB">
-    <operator>LinearToFromdB</operator>
+  <node id="5-LinearTodB">
+    <operator>LinearTodB</operator>
     <sources>
-      <sourceProduct refid="Terrain-Correction"/>
+      <sourceProduct refid="4-Terrain-Correction"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -105,23 +91,20 @@
   </node>
   <applicationData id="Presentation">
     <Description/>
-    <node id="Read">
-            <displayPosition x="37.0" y="134.0"/>
+    <node id="1-Read">
+      <displayPosition y="134.0" x="37.0"/>
     </node>
-    <node id="Write">
-            <displayPosition x="455.0" y="135.0"/>
+    <node id="2-Write">
+      <displayPosition y="135.0" x="455.0"/>
     </node>
-    <node id="Calibration">
-      <displayPosition x="107.0" y="191.0"/>
+    <node id="3-Calibration">
+      <displayPosition y="204.0" x="100.0"/>
     </node>
-    <node id="Speckle-Filter">
-      <displayPosition x="207.0" y="211.0"/>
+    <node id="4-Terrain-Correction">
+      <displayPosition y="223.0" x="233.0"/>
     </node>
-    <node id="Terrain-Correction">
-      <displayPosition x="353.0" y="231.0"/>
-    </node>
-    <node id="LinearTodB">
-      <displayPosition x="397.0" y="193.0"/>
+    <node id="5-LinearTodB">
+      <displayPosition y="242.0" x="424.0"/>
     </node>
   </applicationData>
 </graph>

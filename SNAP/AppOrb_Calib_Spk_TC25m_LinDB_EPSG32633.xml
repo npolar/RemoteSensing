@@ -7,10 +7,21 @@
       <file>$file</file>
     </parameters>
   </node>
+  <node id="Apply-Orbit-File">
+    <operator>Apply-Orbit-File</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <orbitType>Sentinel Precise (Auto Download)</orbitType>
+      <polyDegree>3</polyDegree>
+      <continueOnFail>false</continueOnFail>
+    </parameters>
+  </node>
   <node id="Calibration">
     <operator>Calibration</operator>
     <sources>
-      <sourceProduct refid="Read"/>
+      <sourceProduct refid="Apply-Orbit-File"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -27,7 +38,7 @@
       <outputDNBand>false</outputDNBand>
     </parameters>
   </node>
- <node id="Speckle-Filter">
+  <node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
       <sourceProduct refid="Calibration"/>
@@ -38,13 +49,9 @@
       <filterSizeX>3</filterSizeX>
       <filterSizeY>3</filterSizeY>
       <dampingFactor>2</dampingFactor>
+      <edgeThreshold>5000.0</edgeThreshold>
       <estimateENL>true</estimateENL>
       <enl>1.0</enl>
-      <numLooksStr>1</numLooksStr>
-      <windowSize>7x7</windowSize>
-      <targetWindowSizeStr>3x3</targetWindowSizeStr>
-      <sigmaStr>0.9</sigmaStr>
-      <anSize>50</anSize>
     </parameters>
   </node>
   <node id="Terrain-Correction">
@@ -59,8 +66,8 @@
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>49.83235946676263</pixelSpacingInMeter>
-      <pixelSpacingInDegree>4.4915764205976077E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>24.916179733381316</pixelSpacingInMeter>
+      <pixelSpacingInDegree>2.2457882102988038E-4</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
@@ -95,7 +102,7 @@
     </parameters>
   </node>
   <node id="LinearTodB">
-    <operator>LinearToFromdB</operator>
+    <operator>LinearTodB</operator>
     <sources>
       <sourceProduct refid="Terrain-Correction"/>
     </sources>
