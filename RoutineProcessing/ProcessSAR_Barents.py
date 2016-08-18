@@ -139,145 +139,7 @@ def CheckLocation(sarfile, location, locationEPSG, outputfolder):
     print contained
     os.remove(xml_file_extracted)
     return contained
-    
-    
-def CreateQuicklook(sarfile, outputfilepath, quicklookEPSG):
-    '''
-    Creates quicklooks from Radarsat and Sentinel-1 files
-    '''
-            
-    #Various file paths and names:    
-    (sarfilepath, sarfilename)    = os.path.split(sarfile)             
-    (sarfileshortname, extension) = os.path.splitext(sarfilename)        
-    
-    if len(quicklookEPSG) == 10:
-        EPSGnumber = quicklookEPSG[5:10]
-        EPSGname = 'EPSG' + EPSGnumber
-    elif len(quicklookEPSG) == 9:
-        EPSGnumber = quicklookEPSG[5:9]
-        EPSGname = 'EPSG' + EPSGnumber
-    
-    # Choose SNAP file matching map projection
-    snapfilename = 'Calib_Spk_EC_LinDB_EPSG' + EPSGnumber + '.xml'
-    
-    # Filename for Sentinel or Radarsat to be processed
-    if sarfileshortname[0:3] == 'RS2':  # RADARSAT-2
-        gdalsourcefile = sarfilepath + '//' + sarfileshortname + '//product.xml'
-        outputfile = outputfilepath + '//' + sarfileshortname + '_Cal_Spk_EC' \
-              + '_' + EPSGname + '.dim'
-    if sarfileshortname[0:2] == 'S1':   # SENTINEL-1
-        gdalsourcefile = sarfilepath  +  '//' + sarfileshortname + '.SAFE' + \
-             '//' + 'manifest.safe'
-        outputfile = outputfilepath + '//' + sarfileshortname + '_Cal_Spk_EC' \
-              + '_' + EPSGname + '.dim'
-    if extension == '.001':   # ERS
-        gdalsourcefile = sarfilepath  +  '//'   + \
-             '//VDF_DAT.001' 
-        split = sarfilepath.split("/")
-        outputfile = outputfilepath + '//' + split[-2] + '_Cal_Spk_EC' \
-              + '_' + EPSGname + '.dim'
-
-    if extension == '.E1':   # ERS
-        gdalsourcefile = sarfilepath  +  '//'   + sarfileshortname + '.E1'
-
-    if extension == '.E2':   # ERS
-        gdalsourcefile = sarfilepath  +  '//'   + sarfileshortname + '.E2'
-    
-    #Extract the zipfile, skip if corrupt
-    if extension == ".zip":    
-        try:
-            zfile = zipfile.ZipFile(sarfile, 'r')
-            zfile.extractall(sarfilepath)
-            zfile.close()
-        except:
-            print sarfile + " is corrupt and skipped."
-            return
-        
-
-
-    
-    print "Create Quicklook ", sarfilename    
-          
-    #Process using SNAP
-    os.system(r'gpt //home//max//Documents//PythonProjects//SNAP//' + \
-              snapfilename + ' -Pfile=" ' + gdalsourcefile + '"  -t "'+ \
-              outputfile + '"' )
-
-
-
-    # Convert DIM to GEOTIFF and JPEG
-
-    #Get *.img files in dim-folder
-    (outputfilenamepath, outputfilename) = os.path.split(outputfile)
-    (outputfileshortname, extension)     = os.path.splitext(outputfilename)
-        
-
-    dim_datafile = outputfilepath + '//' + outputfileshortname + \
-                   '.data/Sigma*.img'
-    dimlist = glob.glob(dim_datafile)
-    
-    #Loop through Sigma*.img files and convert to GeoTIFF and JPG
-    for envifile in dimlist:
-        polarisation = envifile[-9:-7]
-        
-        #auxfile is created automatically by SNAP, name defined to remove it       
-        auxfile = outputfilepath + '//' + sarfileshortname + \
-            '_Cal_Spk_EC_' + EPSGname + '_' + polarisation + '.tif.aux.xml'
-        geotifffile = outputfilepath + '//' + sarfileshortname +  \
-            '_Cal_Spk_EC_' + EPSGname + '_' + polarisation + '.tif'
-        jpegfile = outputfilepath + '//' + sarfileshortname + \
-            '_Cal_Spk_EC_' + EPSGname + '_'+  polarisation + '.jpg'
-        if extension == '.001':
-            split = sarfilepath.split("/")
-            jpegfile = outputfilepath + '//' + split[-2] + '_' + \
-                 '_Cal_Spk_EC_' + EPSGname + '_'+  polarisation + '.jpg'
-            geotifffile = outputfilepath + '//' + split[-2] + '_' + \
-                 '_Cal_Spk_EC_' + EPSGname + '_'+  polarisation + '.tif'
-        
-        print 'Converting ', envifile, ' to GeoTIFF and jpeg.'
  
-        os.system("gdal_translate -a_srs EPSG:" + EPSGnumber + \
-                  " -stats -of GTiff " + envifile + " " + geotifffile)
-
-        os.system("gdal_translate -scale -30 0 0 255 -ot Byte" + \
-                       " -co WORLDFILE=YES -of JPEG " + geotifffile + \
-                       " " +  jpegfile) 
-        
-        
-        #Clean up temp files
-        
-        try:
-            os.remove(geotifffile) #uncomment if TIF file wanted!
-        except:
-            pass
-        
-        try:
-            os.remove(auxfile)
-        except:
-            pass
-
-    
-    #Clean up temp files
-    # Dim Files removed
-    dim_datafolder = outputfilepath + '//' + outputfileshortname + '.data'
-    try:
-        shutil.rmtree(dim_datafolder)
-        os.remove(outputfile)
-    except:
-        pass
-    os.remove(outputfile)
-    
-    # Sentinel files removed
-    try:
-        shutil.rmtree(sarfilepath + '//' + sarfileshortname + '.SAFE')
-    except:
-        pass
-    
-    #Radarsat files removed
-    try:
-        shutil.rmtree(sarfilepath + '//' + sarfileshortname )
-    except:
-        pass   
  
 
 def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, crop_to_location):
@@ -400,7 +262,7 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
         jpegfile   =  outputfilepath + '//' + sarfileshortname + '_' \
                       + filename_append + '_' + polarisation + '.jpg'
         if extension == '.001':
-            print "aplitting", 
+            print "splitting", 
             split = sarfilepath.split("/")
             jpegfile = outputfilepath + '//' + split[-2] + '_' + \
                  filename_append +'.jpg'
@@ -445,18 +307,18 @@ def ProcessSAR(sarfile, outputfilepath, location, resolution, outputEPSG, TC, cr
 #############################
 
 # Map projection of output files
-outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
-#outputEPSG = 'EPSG:3575'  # Barents Sea and Framstrait
+#outputEPSG = 'EPSG:32633'  #UTM 33N WGS 84 Svalbard mainland
+outputEPSG = 'EPSG:3575'  # Barents Sea and Framstrait
 #outputEPSG = 'EPSG:3031'  #Dronning Maud Land
 
 # Map projection of Quicklooks
-#quicklookEPSG = 'EPSG:3575'
+quicklookEPSG = 'EPSG:3575'
 #quicklookEPSG = 'EPSG:3031'
-quicklookEPSG = 'EPSG:32633'
+#quicklookEPSG = 'EPSG:32633'
 
 # Do you want Terrain Correction?
-TC = True
-#TC = False
+#TC = True
+TC = False
 
 # Define Area of interest in outputEPSG
 # Austfonna EPSG32633 Surge
@@ -484,13 +346,13 @@ lowerright_y = 8800881.0
 #lowerright_y = 8668288.24
 
 # DO YOU WANT OUTPUT TO BE CROPPED TO LOCATION?
-#crop_to_location = False
+crop_to_location = False
 # OR DO YOU JUST WANT TO  HAVE SCENE CONTAINING location PROCESSED
-crop_to_location = True
+#crop_to_location = True
 
 # If location is set to [], all scenes will be processed
-location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
-#location = []
+#location = [upperleft_x, upperleft_y, lowerright_x, lowerright_y]
+location = []
 
 # SCWA output resolution 50m
 outputresolution = 50
@@ -505,16 +367,15 @@ outputresolution = 50
 #        dir_mode=0755,uid=max,gid=max
 
 
-#inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2016" 
+inputfolder = "//media//max//DATADRIVE1//Radarsat//Flerbruksavtale//ArcticOcean_Svalbard//2016" 
 #inputfolder = "//mnt//glaciology//processedSARimages//KronebreenSLC"
-inputfolder = "//mnt//satellittdata//Sentinel-1//ArcticOceanSvalbard//2016" 
-#inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//Antarctica" 
+##inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//Antarctica" 
 #inputfolder = "//mnt//satellittdata//Radarsat//Flerbruksavtale//Antarctica//2013"
 #inputfolder = "//mnt//max//JitterTest"
 #outputfolder = "//mnt//glaciology//processedSARimages//HoltedalsfonnaKongsfjorden_50_meter//2010"
-outputfolder = "//mnt//glaciology//processedSARimages//Austfonna//2016"
+#outputfolder = "//mnt//glaciology//processedSARimages//Austfonna//2016"
 #outputfolder = "//mnt//glaciology//processedSARimages//KronebreenSLC"
-#outputfolder = "///media//max//DATADRIVE1//Jean"
+outputfolder = "///media//max//DATADRIVE1//Barents"
 #outputfolder = "//mnt//max//Quarctic//Basemap//Imagery"
 
 ##############################
@@ -553,12 +414,7 @@ for sarfile in filelist:
     (sarfilepath, sarfilename)     = os.path.split(sarfile)
     (sarfileshortname, extension)  = os.path.splitext(sarfilename)
     
-    #CreateQuicklook(sarfile, sarfilepath, quicklookEPSG)
-    
-            # Check if AOI extract is wanted       
-    
-  
-    # If location is given, check if contained, if not skip scene
+
     if location != []:
        contained = CheckLocation(sarfile, location, outputEPSG, outputfolder)
        print sarfilename, " is contained: ", contained
