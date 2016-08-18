@@ -38,57 +38,38 @@
       <enl>1.0</enl>
     </parameters>
   </node>
-  <node id="Reproject">
-    <operator>Reproject</operator>
+  <node id="Ellipsoid-Correction-GG">
+    <operator>Ellipsoid-Correction-GG</operator>
     <sources>
       <sourceProduct refid="Speckle-Filter"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <wktFile/>
-      <crs>PROJCS[&quot;WGS 84 / North Pole LAEA Europe&quot;, &#xd;
-    GEOGCS[&quot;WGS 84&quot;, &#xd;
-        DATUM[&quot;WGS_1984&quot;, &#xd;
-            SPHEROID[&quot;WGS 84&quot;,6378137,298.257223563, &#xd;
-                AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
-        PRIMEM[&quot;Greenwich&quot;,0, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
-        UNIT[&quot;degree&quot;,0.0174532925199433, &#xd;
-            AUTHORITY[&quot;EPSG&quot;,&quot;9122&quot;]], &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
-    PROJECTION[&quot;Lambert_Azimuthal_Equal_Area&quot;], &#xd;
-    PARAMETER[&quot;latitude_of_center&quot;,90], &#xd;
-    PARAMETER[&quot;longitude_of_center&quot;,10], &#xd;
-    PARAMETER[&quot;false_easting&quot;,0], &#xd;
-    PARAMETER[&quot;false_northing&quot;,0], &#xd;
-    UNIT[&quot;metre&quot;,1, &#xd;
-        AUTHORITY[&quot;EPSG&quot;,&quot;9001&quot;]], &#xd;
-    AXIS[&quot;X&quot;,EAST], &#xd;
-    AXIS[&quot;Y&quot;,NORTH], &#xd;
-    AUTHORITY[&quot;EPSG&quot;,&quot;3575&quot;]]</crs>
-      <resampling>Nearest</resampling>
-      <referencePixelX/>
-      <referencePixelY/>
-      <easting/>
-      <northing/>
-      <orientation>0.0</orientation>
-      <pixelSizeX/>
-      <pixelSizeY/>
-      <width/>
-      <height/>
-      <tileSizeX/>
-      <tileSizeY/>
-      <orthorectify>false</orthorectify>
-      <elevationModelName/>
-      <noDataValue/>
-      <includeTiePointGrids>true</includeTiePointGrids>
-      <addDeltaBands>false</addDeltaBands>
+      <sourceBands/>
+      <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
+      <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, 
+  GEOGCS[&quot;World Geodetic System 1984&quot;, 
+    DATUM[&quot;World Geodetic System 1984&quot;, 
+      SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], 
+      AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], 
+    PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], 
+    UNIT[&quot;degree&quot;, 0.017453292519943295], 
+    AXIS[&quot;Geodetic longitude&quot;, EAST], 
+    AXIS[&quot;Geodetic latitude&quot;, NORTH]], 
+  PROJECTION[&quot;Transverse_Mercator&quot;], 
+  PARAMETER[&quot;central_meridian&quot;, 15.0], 
+  PARAMETER[&quot;latitude_of_origin&quot;, 0.0], 
+  PARAMETER[&quot;scale_factor&quot;, 0.9996], 
+  PARAMETER[&quot;false_easting&quot;, 500000.0], 
+  PARAMETER[&quot;false_northing&quot;, 0.0], 
+  UNIT[&quot;m&quot;, 1.0], 
+  AXIS[&quot;Easting&quot;, EAST], 
+  AXIS[&quot;Northing&quot;, NORTH]]</mapProjection>
     </parameters>
-  </node>
-  <node id="LinearTodB">
-    <operator>LinearTodB</operator>
+    </node>
+  <node id="LinearToFromdB">
+    <operator>LinearToFromdB</operator>
     <sources>
-      <sourceProduct refid="Reproject"/>
+      <sourceProduct refid="Ellipsoid-Correction-GG"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>

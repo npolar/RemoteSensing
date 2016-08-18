@@ -4,51 +4,25 @@
     <operator>Read</operator>
     <sources/>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <file>$file</file>
-    </parameters>
-  </node>
- <node id="TOPSAR-Deburst">
-    <operator>TOPSAR-Deburst</operator>
-    <sources>
-      <sourceProduct refid="Read"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <selectedPolarisations/>
-    </parameters>
-  </node>
-  <node id="Multilook">
-    <operator>Multilook</operator>
-    <sources>
-      <sourceProduct refid="TOPSAR-Deburst"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
-      <nRgLooks>1</nRgLooks>
-      <nAzLooks>1</nAzLooks>
-      <outputIntensity>true</outputIntensity>
-      <grSquarePixel>true</grSquarePixel>
+      <file>Z:\ERS_Envisat_SAR\Arctic\1991\ERS1PRI_19911020o01367tr220fr2007\SCENE1\VDF_DAT.001</file>
     </parameters>
   </node>
   <node id="Calibration">
     <operator>Calibration</operator>
     <sources>
-      <sourceProduct refid="Multilook"/>
+      <sourceProduct refid="Read"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
-      <auxFile>Latest Auxiliary File</auxFile>
+      <auxFile>Product Auxiliary File</auxFile>
       <externalAuxFile/>
       <outputImageInComplex>false</outputImageInComplex>
       <outputImageScaleInDb>false</outputImageScaleInDb>
       <createGammaBand>false</createGammaBand>
       <createBetaBand>false</createBetaBand>
-      <selectedPolarisations/>
-      <outputSigmaBand>true</outputSigmaBand>
-      <outputGammaBand>false</outputGammaBand>
-      <outputBetaBand>false</outputBetaBand>
     </parameters>
   </node>
- <node id="Speckle-Filter">
+  <node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
       <sourceProduct refid="Calibration"/>
@@ -59,13 +33,9 @@
       <filterSizeX>3</filterSizeX>
       <filterSizeY>3</filterSizeY>
       <dampingFactor>2</dampingFactor>
+      <edgeThreshold>5000.0</edgeThreshold>
       <estimateENL>true</estimateENL>
       <enl>1.0</enl>
-      <numLooksStr>1</numLooksStr>
-      <windowSize>7x7</windowSize>
-      <targetWindowSizeStr>3x3</targetWindowSizeStr>
-      <sigmaStr>0.9</sigmaStr>
-      <anSize>50</anSize>
     </parameters>
   </node>
   <node id="Terrain-Correction">
@@ -76,12 +46,12 @@
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
       <demName>External DEM</demName>
-      <externalDEMFile>/home/max/Documents/Svalbard/GIS/DTM/dem50.tif</externalDEMFile>
+      <externalDEMFile>C:\Users\max\Documents\Svalbard\GIS\DTM\dem20.tif</externalDEMFile>
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>
-      <pixelSpacingInMeter>10</pixelSpacingInMeter>
-      <pixelSpacingInDegree>0.9663056823904E-4</pixelSpacingInDegree>
+      <pixelSpacingInMeter>12.458089866690658</pixelSpacingInMeter>
+      <pixelSpacingInDegree>1.1228941051494019E-4</pixelSpacingInDegree>
       <mapProjection>PROJCS[&quot;UTM Zone 33 / World Geodetic System 1984&quot;, &#xd;
   GEOGCS[&quot;World Geodetic System 1984&quot;, &#xd;
     DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
@@ -100,7 +70,7 @@
   UNIT[&quot;m&quot;, 1.0], &#xd;
   AXIS[&quot;Easting&quot;, EAST], &#xd;
   AXIS[&quot;Northing&quot;, NORTH]]</mapProjection>
-      <nodataValueAtSea>false</nodataValueAtSea>
+      <nodataValueAtSea>true</nodataValueAtSea>
       <saveDEM>false</saveDEM>
       <saveLocalIncidenceAngle>false</saveLocalIncidenceAngle>
       <saveProjectedLocalIncidenceAngle>false</saveProjectedLocalIncidenceAngle>
@@ -115,8 +85,8 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="LinearToFromdB">
-    <operator>LinearToFromdB</operator>
+  <node id="LinearTodB">
+    <operator>LinearTodB</operator>
     <sources>
       <sourceProduct refid="Terrain-Correction"/>
     </sources>
@@ -124,25 +94,35 @@
       <sourceBands/>
     </parameters>
   </node>
+  <node id="6-Write">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="LinearTodB"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <formatName>BEAM-DIMAP</formatName>
+      <file>C:\Users\max\Documents\ERS_TC\ERS1PRI_19911020o01367tr220fr2007.dim</file>
+    </parameters>
+  </node>
   <applicationData id="Presentation">
     <Description/>
     <node id="Read">
-            <displayPosition x="37.0" y="134.0"/>
-    </node>
-    <node id="Write">
-            <displayPosition x="455.0" y="135.0"/>
+            <displayPosition y="134.0" x="37.0"/>
     </node>
     <node id="Calibration">
-      <displayPosition x="107.0" y="191.0"/>
+      <displayPosition y="191.0" x="107.0"/>
     </node>
     <node id="Speckle-Filter">
-      <displayPosition x="207.0" y="211.0"/>
+      <displayPosition y="211.0" x="207.0"/>
     </node>
     <node id="Terrain-Correction">
-      <displayPosition x="353.0" y="231.0"/>
+      <displayPosition y="231.0" x="353.0"/>
     </node>
     <node id="LinearTodB">
-      <displayPosition x="397.0" y="193.0"/>
+      <displayPosition y="193.0" x="397.0"/>
+    </node>
+    <node id="6-Write">
+      <displayPosition y="159.0" x="315.0"/>
     </node>
   </applicationData>
 </graph>

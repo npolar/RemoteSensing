@@ -7,10 +7,19 @@
       <file>$file</file>
     </parameters>
   </node>
-     <node id="Multilook">
-    <operator>Multilook</operator>
+ <node id="TOPSAR-Deburst">
+    <operator>TOPSAR-Deburst</operator>
     <sources>
       <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+    </parameters>
+  </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="TOPSAR-Deburst"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -27,7 +36,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
-      <auxFile>Product Auxiliary File</auxFile>
+      <auxFile>Latest Auxiliary File</auxFile>
       <externalAuxFile/>
       <outputImageInComplex>false</outputImageInComplex>
       <outputImageScaleInDb>false</outputImageScaleInDb>
@@ -37,7 +46,6 @@
       <outputSigmaBand>true</outputSigmaBand>
       <outputGammaBand>false</outputGammaBand>
       <outputBetaBand>false</outputBetaBand>
-      <outputDNBand>false</outputDNBand>
     </parameters>
   </node>
 <node id="Speckle-Filter">
