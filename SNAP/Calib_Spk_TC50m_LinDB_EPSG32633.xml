@@ -93,7 +93,7 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="LinearTodB">
+  <node id="LinearToFromdB">
     <operator>LinearToFromdB</operator>
     <sources>
       <sourceProduct refid="Terrain-Correction"/>

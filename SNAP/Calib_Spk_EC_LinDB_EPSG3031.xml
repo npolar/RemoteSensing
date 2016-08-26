@@ -67,8 +67,8 @@
   AUTHORITY[&quot;EPSG&quot;,&quot;3031&quot;]]</mapProjection>
     </parameters>
     </node>
-  <node id="LinearTodB">
-    <operator>LinearTodB</operator>
+  <node id="LinearToFromdB">
+    <operator>LinearToFromdB</operator>
     <sources>
       <sourceProduct refid="Reproject"/>
     </sources>

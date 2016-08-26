@@ -75,8 +75,8 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
-      <demName>External DEM</demName>
-      <externalDEMFile>/home/max/Documents/Svalbard/GIS/DTM/dem50.tif</externalDEMFile>
+      <demName>GETASSE30</demName>
+      <externalDEMFile/>
       <externalDEMNoDataValue>9999.0</externalDEMNoDataValue>
       <demResamplingMethod>NEAREST_NEIGHBOUR</demResamplingMethod>
       <imgResamplingMethod>NEAREST_NEIGHBOUR</imgResamplingMethod>

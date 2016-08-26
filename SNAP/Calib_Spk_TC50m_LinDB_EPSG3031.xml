@@ -1,16 +1,16 @@
 <graph id="Graph">
   <version>1.0</version>
-  <node id="1-Read">
+  <node id="Read">
     <operator>Read</operator>
     <sources/>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <file>$file</file>
     </parameters>
   </node>
-  <node id="3-Calibration">
+  <node id="Calibration">
     <operator>Calibration</operator>
     <sources>
-      <sourceProduct refid="1-Read"/>
+      <sourceProduct refid="Read"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -20,12 +20,16 @@
       <outputImageScaleInDb>false</outputImageScaleInDb>
       <createGammaBand>false</createGammaBand>
       <createBetaBand>false</createBetaBand>
+      <selectedPolarisations/>
+      <outputSigmaBand>true</outputSigmaBand>
+      <outputGammaBand>false</outputGammaBand>
+      <outputBetaBand>false</outputBetaBand>
     </parameters>
   </node>
-  <node id="4-Speckle-Filter">
+ <node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
-      <sourceProduct refid="3-Calibration"/>
+      <sourceProduct refid="Calibration"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -33,15 +37,19 @@
       <filterSizeX>3</filterSizeX>
       <filterSizeY>3</filterSizeY>
       <dampingFactor>2</dampingFactor>
-      <edgeThreshold>5000.0</edgeThreshold>
       <estimateENL>true</estimateENL>
       <enl>1.0</enl>
+      <numLooksStr>1</numLooksStr>
+      <windowSize>7x7</windowSize>
+      <targetWindowSizeStr>3x3</targetWindowSizeStr>
+      <sigmaStr>0.9</sigmaStr>
+      <anSize>50</anSize>
     </parameters>
   </node>
-  <node id="5-Terrain-Correction">
+  <node id="Terrain-Correction">
     <operator>Terrain-Correction</operator>
     <sources>
-      <sourceProduct refid="4-Speckle-Filter"/>
+      <sourceProduct refid="Speckle-Filter"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -86,10 +94,10 @@
       <externalAuxFile/>
     </parameters>
   </node>
-  <node id="6-LinearTodB">
-    <operator>LinearTodB</operator>
+  <node id="LinearToFromdB">
+    <operator>LinearToFromdB</operator>
     <sources>
-      <sourceProduct refid="5-Terrain-Correction"/>
+      <sourceProduct refid="Terrain-Correction"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>

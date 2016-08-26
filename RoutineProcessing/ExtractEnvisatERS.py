@@ -89,7 +89,7 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
     
     #Remove folder where extracted and temporary files are stored
     
-    os.remove(outputfilename)
+    #os.remove(outputfilename)
     
         #Close zipfile
 
@@ -107,23 +107,23 @@ def EnvisatERSDetailedQuicklook_E1E2(envisatfile):
 #filelist = glob.glob(r'G:\\satellittdata\\SCNA\\RS2*.zip')
 #filelist = glob.glob(r'G:\\Radarsat\\sathav\\2013\\10_October\\RS2*.zip')
 filelist_CEOS = []
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2010'):
+for root, dirnames, filenames in os.walk("//mnt//satellittdata//ERS_Envisat_SAR//Arctic//1991"):
   for filename in fnmatch.filter(filenames, 'DAT_01.001'):
       filelist_CEOS.append(os.path.join(root, filename))
 
 filelist_E1E2 = []
-for root, dirnames, filenames in os.walk('Z:\ERS_Envisat_SAR\Arctic\2010'):
+for root, dirnames, filenames in os.walk("//mnt//satellittdata//ERS_Envisat_SAR//Arctic//1991"):
   for filename in fnmatch.filter(filenames, '*.E1'):
       filelist_E1E2.append(os.path.join(root, filename))      
-for root, dirnames, filenames in os.walk('Z:\ERS_Envisat_SAR\Arctic\2010'):
+for root, dirnames, filenames in os.walk("//mnt//satellittdata//ERS_Envisat_SAR//Arctic//1991"):
   for filename in fnmatch.filter(filenames, '*.E2'):
       filelist_E1E2.append(os.path.join(root, filename))  
-for root, dirnames, filenames in os.walk('Z:\\ERS_Envisat_SAR\\Arctic\\2010'):
+for root, dirnames, filenames in os.walk("//mnt//satellittdata//ERS_Envisat_SAR//Arctic//1991"):
   for filename in fnmatch.filter(filenames, '*.N1'):
       filelist_E1E2.append(os.path.join(root, filename)) 
 
     
-outputfilepath = 'Z:\\ERS_Envisat_SAR\\Arctic\\2010'
+outputfilepath = "//media//max//DATADRIVE1//satellittdata/ERS_TC"
 
 
 #outputfilepath = 'G:\\satellittdata\\processed_SCNA\\'
